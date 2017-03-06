@@ -1,30 +1,27 @@
 import BSPTree._
 import RNG.Rand
 
-sealed trait Tile
-case object RoomTile extends Tile
-case object CorridorTile extends Tile
-case object DoorTile extends Tile
+case class Floorplan(positionedTiles: Map[Position, Tile], size: Size)
 
-sealed trait Corridor
-case class HorizontalCorridor(area: Area) extends Corridor
-case class VerticalCorridor(area: Area) extends Corridor
+object FloorplanGenerator {
 
-case class Room(area: Area)
+  sealed trait Corridor
+  case class HorizontalCorridor(area: Area) extends Corridor
+  case class VerticalCorridor(area: Area) extends Corridor
 
-case class DungeonTopology(rooms: Set[Room], corridors: Set[Corridor]) {
-  def +(other: DungeonTopology) = this.copy(rooms = rooms ++ other.rooms, corridors = corridors ++ other.corridors)
-  def +(room: Room) = this.copy(rooms = rooms + room)
-  def +(corridor: Corridor) = this.copy(corridors = corridors + corridor)
-}
+  case class Room(area: Area)
 
-object DungeonTileGenerator {
+  case class Topology(rooms: Set[Room], corridors: Set[Corridor]) {
+    def +(other: Topology) = this.copy(rooms = rooms ++ other.rooms, corridors = corridors ++ other.corridors)
+    def +(room: Room) = this.copy(rooms = rooms + room)
+    def +(corridor: Corridor) = this.copy(corridors = corridors + corridor)
+  }
 
-  def generate(tree: BSPTree, gridSize: Size): Rand[(DungeonTopology, Map[Position, Tile])] = rng => {
+  def generate(tree: BSPTree, gridSize: Size): Rand[(Topology, Floorplan)] = rng => {
     import Direction._
     var varRng = rng
 
-    def innerTopology(tree: BSPTree, area: Area): DungeonTopology = {
+    def innerTopology(tree: BSPTree, area: Area): Topology = {
 
       def roomTouchingCenterOfSubspace(area: Area): Rand[Room] = rng => {
         val (widthRatio, newRng1) = RNG.nextPositiveGaussianRatio(5)(rng)
@@ -66,13 +63,12 @@ object DungeonTileGenerator {
         case Leaf =>
           val (newRoom, newRng) = roomTouchingCenterOfSubspace(area)(varRng)
           varRng = newRng
-          DungeonTopology(rooms = Set(newRoom), corridors = Set())
+          Topology(rooms = Set(newRoom), corridors = Set())
       }
-
 
     }
 
-    val topology = innerTopology(tree, Area(Position(0,0), gridSize))
+    val topology = innerTopology(tree, Area(Position(0,0), gridSize).shrink(1)) //shrink to expose a 1 cell thick outline
 
     val horizontallyRoomAdjacentPositions = topology.rooms
       .flatMap(room => Set(Left, Right).map(room.area.adjacencyLine))
@@ -82,50 +78,43 @@ object DungeonTileGenerator {
       .flatMap(room => Set(Up, Down).map(room.area.adjacencyLine))
       .flatMap(_.positions)
 
-
-    def isRoomTile: Tile => Boolean = {
-      case RoomTile => true
-      case CorridorTile => false
-      case DoorTile => false
-    }
-
-    def isCorridorTile: Tile => Boolean = {
-      case RoomTile => false
-      case CorridorTile => true
-      case DoorTile => false
-    }
-
     val tilesWithoutDoors: Map[Position, Tile] =
-        topology.corridors.flatMap {
-          case VerticalCorridor(area)   =>
-            area.positions.map(position =>
-              if(horizontallyRoomAdjacentPositions.contains(position))
-                position -> RoomTile
-              else
-                position -> CorridorTile
-            )
+      topology.corridors.flatMap {
+        case VerticalCorridor(area)   =>
+          area.positions.map(position =>
+            if(horizontallyRoomAdjacentPositions.contains(position))
+              position -> RoomTile
+            else
+              position -> CorridorTile
+          )
 
-          case HorizontalCorridor(area) =>
-            area.positions.map(position =>
-              if(verticallyRoomAdjacentPositions.contains(position))
-                position -> RoomTile
-              else
-                position -> CorridorTile
-            )
-        }.toMap ++ topology.rooms.flatMap(_.area.positions.map(_ -> RoomTile)).toMap
+        case HorizontalCorridor(area) =>
+          area.positions.map(position =>
+            if(verticallyRoomAdjacentPositions.contains(position))
+              position -> RoomTile
+            else
+              position -> CorridorTile
+          )
+      }
+      .groupBy(_._1)
+      .map {
+        case (_, tileMappings) => tileMappings
+          .find(tileMapping => tileMapping._2.isRoomTile) //put priority over room tiles
+          .getOrElse(tileMappings.head)
+      } ++ topology.rooms.flatMap(_.area.positions.map(_ -> RoomTile)).toMap
 
 
     val tiles: Map[Position, Tile] = tilesWithoutDoors
       .map {
         case (position, CorridorTile) =>
-          if(position.sides.exists(tilesWithoutDoors.get(_).exists(isRoomTile)))
+          if(position.sides.exists(tilesWithoutDoors.get(_).exists(_.isRoomTile)))
             position -> DoorTile
           else
             position -> CorridorTile
         case other => other
       }
 
-    ((topology, tilesWithoutDoors), varRng)
+    ((topology, Floorplan(tiles, gridSize)), varRng)
   }
 
 }

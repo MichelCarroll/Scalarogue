@@ -70,6 +70,7 @@ case class Area(position: Position, size: Size) {
 
   def adjacencyLine(direction: Direction): Area = edge(direction).towards(direction, 1)
 
+  def shrink(s: Int) = Area(Position(s,s), Size(size.width - s * 2, size.height - s * 2))
 }
 
 sealed trait Direction

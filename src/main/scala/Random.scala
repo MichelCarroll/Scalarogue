@@ -60,6 +60,25 @@ object RNG {
       val (j, k) = sequence(xs)(newRng)
       (a :: j, k)
   }
+
+  def nextFromSet[T](s: Set[T]): Rand[Option[T]] = rng => {
+    if(s.isEmpty)
+      (None, rng)
+    else {
+      val (i, newRng) = RNG.nextPositiveInt(s.size - 1)(rng)
+      (Some(s.iterator.drop(i).next), newRng)
+    }
+  }
+
+  def nextsFromSet[T](s: Set[T], n: Int): Rand[Set[T]] = rng => {
+    if(n == 0)
+      (Set(), rng)
+    else {
+      val (i, newRng) = RNG.nextPositiveInt(s.size - 1)(rng)
+      val item = s.iterator.drop(i).next
+      RNG.map(RNG.nextsFromSet(s - item, n - 1))(_ + item)(newRng)
+    }
+  }
 }
 
 case class SimpleRNG(seed: Long) extends RNG {
