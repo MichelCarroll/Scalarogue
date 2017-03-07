@@ -1,6 +1,9 @@
 
 import Direction._
 
+
+case class PrecisePosition(x: Double, y: Double)
+
 case class Position(x: Int, y: Int) {
 
   def towards(direction: Direction, s: Int) = direction match {
@@ -16,6 +19,10 @@ case class Position(x: Int, y: Int) {
   def down(s: Int) = towards(Down, s)
 
   def sides: Set[Position] = Direction.all.map(towards(_, 1))
+
+  def distanceFrom(other: Position): Double = lineTo(other).length
+
+  def lineTo(other: Position) = LineSegment(this, other)
 }
 
 sealed trait Shape
@@ -109,4 +116,10 @@ case class Size(width: Int, height: Int) {
     )
 
   def empty = width <= 0 || height <= 0
+}
+
+case class LineSegment(a: Position, b: Position) {
+  def deltaX = b.x - a.x
+  def deltaY = b.y - a.y
+  def length = Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2))
 }

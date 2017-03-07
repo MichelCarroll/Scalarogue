@@ -1,7 +1,7 @@
 
 import RNG.Rand
 
-case class Dungeon(cells: Map[Position, Cell], size: Size, entrancePosition: Position)
+case class Dungeon(cells: Map[Position, Cell], area: Area, entrancePosition: Position)
 
 object DungeonGenerator {
 
@@ -51,7 +51,7 @@ object DungeonGenerator {
         cells = wallCells ++ floorplanCells
           + (entrancePosition -> OpenCell(structure = Some(Upstairs)))
           + (exitPosition -> OpenCell(structure = Some(Downstairs))),
-        size = floorplan.size,
+        area = Area(Position(0,0), floorplan.size),
         entrancePosition = entrancePosition
       )
       (Right(dungeon), rng)

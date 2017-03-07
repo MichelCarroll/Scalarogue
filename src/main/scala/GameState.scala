@@ -2,10 +2,13 @@
 
 
 case class Player(position: Position, being: Being) {
-  private val viewportRange = 5
+
+  private val viewportRange = 6
+  val lineOfLightRange = 5
+
   def viewport = Area(
-    Position(position.x - viewportRange, position.y - viewportRange),
-    Position(position.x + viewportRange, position.y + viewportRange)
+    Position(position.x - viewportRange + 1, position.y - viewportRange + 1),
+    Position(position.x + viewportRange - 1, position.y + viewportRange - 1)
   )
 }
 
@@ -26,6 +29,46 @@ case class GameState(dungeon: Dungeon, player: Player, rng: RNG) {
       case Left => attemptNewPosition(player.position.left(1))
       case Right => attemptNewPosition(player.position.right(1))
     }
+  }
+
+  def visiblePositions: Set[Position] = dungeon.area.positions
+    .filter(_.distanceFrom(player.position) < player.lineOfLightRange)
+
+  def perimeterLineOfSightPositions = visiblePositions
+    .filter(_.distanceFrom(player.position) >= player.lineOfLightRange - 1)
+
+  def perimeterRays = perimeterLineOfSightPositions.map(player.position.lineTo)
+
+  def positionsWithinRangeTouchedByARay: Set[Position] = {
+    var positionsTouched = Set[Position]()
+
+    for(ray <- perimeterRays) {
+      val increment = 0.1
+      val dx = ray.deltaX / ray.length * increment
+      val dy = ray.deltaY / ray.length * increment
+      val numberIncrements = (ray.length / increment).toInt
+      val initialPosition = (ray.a.x + 0.5, ray.a.y + 0.5)
+
+      var touchedWall = false
+
+      for(i <- 0 to numberIncrements) {
+        val currentPosition = Position(
+          (initialPosition._1 + dx * i).toInt,
+          (initialPosition._2 + dy * i).toInt
+        )
+
+        if(!touchedWall) {
+          positionsTouched = positionsTouched + currentPosition
+
+          if(dungeon.cells.get(currentPosition).forall(_.opaque)) {
+            touchedWall = true
+          }
+        }
+
+      }
+    }
+
+    positionsTouched
   }
 
 }

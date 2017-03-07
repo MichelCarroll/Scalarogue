@@ -30,7 +30,7 @@ class ImageRepository(canvasContext: dom.CanvasRenderingContext2D) {
   val alphabet = imageWithSrc("images/alphabet.png", ImageSourceSize(1800, 50))
   val closed_door = imageWithSrc("images/closed_door.png", ImageSourceSize(333, 334))
   val open_door = imageWithSrc("images/open_door.png", ImageSourceSize(313, 312))
-  val darkness = imageWithSrc("images/darkness.png", ImageSourceSize(333, 305))
+  val wall = imageWithSrc("images/darkness.png", ImageSourceSize(333, 305))
   val floor = imageWithSrc("images/floor.png", ImageSourceSize(320, 320))
   val upstairs = imageWithSrc("images/upstairs.png", ImageSourceSize(370, 370))
   val downstairs = imageWithSrc("images/downstairs.png", ImageSourceSize(400, 400))
@@ -38,7 +38,7 @@ class ImageRepository(canvasContext: dom.CanvasRenderingContext2D) {
 
 
   val loaded: Future[Unit] = Future.sequence(Set(
-    alphabet, closed_door, open_door, darkness, floor,
+    alphabet, closed_door, open_door, wall, floor,
     upstairs, downstairs, nugget
   ).map(_.element).map(onLoadFuture(_))).map(_ => Unit)
 }
