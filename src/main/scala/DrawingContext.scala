@@ -27,7 +27,7 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D,
     )
 
     val cellsInLineOfSight = gameState
-      .positionsWithinRangeTouchedByARay
+      .positionsWithinRangeTouchedByPerimeterRay
       .map(position => position -> gameState.dungeon.cells.get(position))
       .toMap
 
@@ -39,6 +39,7 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D,
           case Some(OpenedDoor) => drawGridImage(imageRepository.open_door, position)
           case Some(Downstairs) => drawGridImage(imageRepository.downstairs, position)
           case Some(Upstairs) =>   drawGridImage(imageRepository.upstairs, position)
+          case Some(_) =>
           case None =>
         }
       case (position, Some(ClosedCell)) =>
@@ -51,31 +52,35 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D,
 
     //debug
 //    drawGrid()
-//    gameState.perimeterRays.foreach(lineSegment => drawLineSegment(lineSegment, Color.Green))
+//    gameState.perimeterRays.foreach(ray => drawRay(ray, Color.Green))
 //    gameState.positionsWithinRangeTouchedByARay.foreach(drawDot(_, Color.Red))
 
-
-    def centeredCanvasPosition(position: Position) = {
-      val topLeft = canvasPosition(position)
+    def centeredCanvasVector(vector: Vector) = {
+      val topLeft = canvasVector(vector)
       CanvasPosition(topLeft.x + cellEdge / 2, topLeft.y + cellEdge / 2)
     }
 
-    def canvasPosition(position: Position): CanvasPosition = CanvasPosition(
-      (position.x - gameState.player.viewport.topLeft.x) * cellEdge + drawingArea.position.x,
-      (position.y - gameState.player.viewport.topLeft.y) * cellEdge + drawingArea.position.y
+    def centeredCanvasPosition(position: Position) = {
+      val topLeft = canvasVector(position.vector)
+      CanvasPosition(topLeft.x + cellEdge / 2, topLeft.y + cellEdge / 2)
+    }
+
+    def canvasVector(vector: Vector): CanvasPosition = CanvasPosition(
+      (vector.x - gameState.player.viewport.topLeft.x) * cellEdge + drawingArea.position.x,
+      (vector.y - gameState.player.viewport.topLeft.y) * cellEdge + drawingArea.position.y
     )
 
     def drawGridImage(image: Image, position: Position): Unit = {
-      val pos = canvasPosition(position)
+      val pos = canvasVector(position.vector)
       renderingContext.save()
       renderingContext.translate(pos.x, pos.y)
       renderingContext.drawImage(image.element, 0, 0, image.sourceSize.width, image.sourceSize.height, 0, 0, cellEdge, cellEdge)
       renderingContext.restore()
     }
 
-    def drawLineSegment(lineSegment: LineSegment, color: Color): Unit = {
-      val start = centeredCanvasPosition(lineSegment.a)
-      val end = centeredCanvasPosition(lineSegment.b)
+    def drawRay(ray: Ray, color: Color): Unit = {
+      val start = canvasVector(ray.origin)
+      val end = canvasVector(ray.origin + ray.vector)
       renderingContext.lineWidth = 3
       renderingContext.strokeStyle = color.toString()
       renderingContext.beginPath()

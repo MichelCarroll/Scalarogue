@@ -18,10 +18,18 @@ case class GameState(dungeon: Dungeon, player: Player, rng: RNG) {
   def applyPlayerCommand(playerCommand: PlayerCommand): GameState = {
 
     def attemptNewPosition(newPosition: Position): GameState =
-      if(dungeon.cells.get(newPosition).forall(_.passable))
-        this.copy(player = player.copy(newPosition))
-      else
-        this
+      dungeon.cells.get(newPosition) match {
+
+        case Some(OpenCell(being, Some(structure: Openable), item)) =>
+          this.copy(dungeon = dungeon.copy(dungeon.cells.updated(newPosition, OpenCell(being, Some(structure.opened), item))))
+
+        case Some(cell) if cell.passable =>
+          this.copy(player = player.copy(newPosition))
+
+        case _ =>
+          this
+
+      }
 
     playerCommand match {
       case Up => attemptNewPosition(player.position.up(1))
@@ -31,31 +39,28 @@ case class GameState(dungeon: Dungeon, player: Player, rng: RNG) {
     }
   }
 
-  def visiblePositions: Set[Position] = dungeon.area.positions
-    .filter(_.distanceFrom(player.position) < player.lineOfLightRange)
+  def perimeterRays = {
+    val nRays = 80
+    val interval = Math.PI * 2 / nRays
 
-  def perimeterLineOfSightPositions = visiblePositions
-    .filter(_.distanceFrom(player.position) >= player.lineOfLightRange - 1)
+    (0 until nRays)
+      .map(_ * interval)
+      .map(theta => Vector(player.lineOfLightRange, Angle(theta)))
+      .map(vector => Ray(Vector(player.position.x + 0.5, player.position.y + 0.5), vector))
+  }
 
-  def perimeterRays = perimeterLineOfSightPositions.map(player.position.lineTo)
-
-  def positionsWithinRangeTouchedByARay: Set[Position] = {
+  def positionsWithinRangeTouchedByPerimeterRay: Set[Position] = {
     var positionsTouched = Set[Position]()
 
     for(ray <- perimeterRays) {
       val increment = 0.1
-      val dx = ray.deltaX / ray.length * increment
-      val dy = ray.deltaY / ray.length * increment
-      val numberIncrements = (ray.length / increment).toInt
-      val initialPosition = (ray.a.x + 0.5, ray.a.y + 0.5)
+      val delta = ray.vector.unit * increment
+      val numberIncrements = (ray.vector.magnitude / increment).toInt
 
       var touchedWall = false
 
       for(i <- 0 to numberIncrements) {
-        val currentPosition = Position(
-          (initialPosition._1 + dx * i).toInt,
-          (initialPosition._2 + dy * i).toInt
-        )
+        val currentPosition = (ray.origin + delta * i).position
 
         if(!touchedWall) {
           positionsTouched = positionsTouched + currentPosition

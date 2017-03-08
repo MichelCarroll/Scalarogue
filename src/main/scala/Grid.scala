@@ -20,10 +20,33 @@ case class Position(x: Int, y: Int) {
 
   def sides: Set[Position] = Direction.all.map(towards(_, 1))
 
-  def distanceFrom(other: Position): Double = lineTo(other).length
-
-  def lineTo(other: Position) = LineSegment(this, other)
+  def vector = Vector(x, y)
 }
+
+case class Angle(radians: Double) {
+  assert(radians >= 0)
+  assert(radians < Math.PI * 2)
+}
+
+case class Vector(x: Double, y: Double) {
+  def +(other: Vector) = Vector(x + other.x, y + other.y)
+  def -(other: Vector) = Vector(x - other.x, y - other.y)
+  def *(a: Double) = Vector(x * a, y * a)
+  def magnitude = Math.sqrt(x * x + y * y)
+  def unit = Vector(x / magnitude, y / magnitude)
+  def ofMagnitude(newMagnitude: Int) = unit * newMagnitude
+  def position = Position(x.toInt, y.toInt)
+}
+
+object Vector {
+  val zero = Vector(0,0)
+  def apply(magnitude: Double, angle: Angle): Vector = Vector(
+    x = magnitude * Math.cos(angle.radians),
+    y = magnitude * Math.sin(angle.radians)
+  )
+}
+
+case class Ray(origin: Vector, vector: Vector)
 
 sealed trait Shape
 case object SkewedVertically extends Shape
@@ -116,10 +139,4 @@ case class Size(width: Int, height: Int) {
     )
 
   def empty = width <= 0 || height <= 0
-}
-
-case class LineSegment(a: Position, b: Position) {
-  def deltaX = b.x - a.x
-  def deltaY = b.y - a.y
-  def length = Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2))
 }
