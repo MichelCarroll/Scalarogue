@@ -4,7 +4,7 @@
 case class Player(position: Position, being: Being) {
 
   private val viewportRange = 6
-  val lineOfLightRange = 5
+  val lineOfLightRange = Math.ceil(Math.sqrt(2 * Math.pow(viewportRange, 2)))
 
   def viewport = Area(
     Position(position.x - viewportRange + 1, position.y - viewportRange + 1),
@@ -19,6 +19,9 @@ case class GameState(dungeon: Dungeon, player: Player, rng: RNG) {
 
     def attemptNewPosition(newPosition: Position): GameState =
       dungeon.cells.get(newPosition) match {
+
+        case Some(OpenCell(Some(being: Enemy), structure, item)) =>
+          this.copy(dungeon = dungeon.copy(dungeon.cells.updated(newPosition, OpenCell(None, structure, item))))
 
         case Some(OpenCell(being, Some(structure: Openable), item)) =>
           this.copy(dungeon = dungeon.copy(dungeon.cells.updated(newPosition, OpenCell(being, Some(structure.opened), item))))
@@ -53,7 +56,7 @@ case class GameState(dungeon: Dungeon, player: Player, rng: RNG) {
     var positionsTouched = Set[Position]()
 
     for(ray <- perimeterRays) {
-      val increment = 0.1
+      val increment = 0.8
       val delta = ray.vector.unit * increment
       val numberIncrements = (ray.vector.magnitude / increment).toInt
 

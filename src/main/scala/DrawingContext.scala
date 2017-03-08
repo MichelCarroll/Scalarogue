@@ -28,6 +28,7 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D,
 
     val cellsInLineOfSight = gameState
       .positionsWithinRangeTouchedByPerimeterRay
+      .intersect(gameState.player.viewport.positions)
       .map(position => position -> gameState.dungeon.cells.get(position))
       .toMap
 
@@ -42,13 +43,18 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D,
           case Some(_) =>
           case None =>
         }
+        being match {
+          case Some(Nugget) => drawGridImage(imageRepository.nugget, position)
+          case Some(Spider) => drawGridImage(imageRepository.spider, position)
+          case None =>
+        }
       case (position, Some(ClosedCell)) =>
         drawGridImage(imageRepository.wall, position)
       case (position, None) =>
         drawGridImage(imageRepository.wall, position)
     }
 
-    drawGridImage(imageRepository.nugget, gameState.player.position)
+    drawGridImage(imageRepository.spider, gameState.player.position)
 
     //debug
 //    drawGrid()

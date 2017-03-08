@@ -1,9 +1,11 @@
 
+sealed trait Enemy extends Being
 
 sealed trait Being
 case object Nugget extends Being
+case object Spider extends Being with Enemy
 
-trait Openable extends Structure {
+sealed trait Openable extends Structure {
   def opened: Structure
 }
 

@@ -35,10 +35,11 @@ class ImageRepository(canvasContext: dom.CanvasRenderingContext2D) {
   val upstairs = imageWithSrc("images/upstairs.png", ImageSourceSize(370, 370))
   val downstairs = imageWithSrc("images/downstairs.png", ImageSourceSize(400, 400))
   val nugget = imageWithSrc("images/nugget.png", ImageSourceSize(607, 600))
+  val spider = imageWithSrc("images/spider.png", ImageSourceSize(596, 594))
 
 
   val loaded: Future[Unit] = Future.sequence(Set(
     alphabet, closed_door, open_door, wall, floor,
-    upstairs, downstairs, nugget
+    upstairs, downstairs, nugget, spider
   ).map(_.element).map(onLoadFuture(_))).map(_ => Unit)
 }

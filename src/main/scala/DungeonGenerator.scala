@@ -26,6 +26,7 @@ object DungeonGenerator {
         p match {
           case x if x < 0.0005 => OpenCell(structure = Some(Upstairs))
           case x if x < 0.001 =>  OpenCell(structure = Some(Downstairs))
+          case x if x < 0.015 =>  OpenCell(being = Some(Spider))
           case _ => OpenCell()
         }
       }
