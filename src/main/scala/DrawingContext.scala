@@ -5,7 +5,7 @@ import org.scalajs.dom.ext.Color
 
 case class CanvasPosition(x: Double, y: Double)
 
-class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D, drawingArea: Area) {
+class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D) {
 
   import Structure._
 
@@ -13,6 +13,10 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D,
 
   def ready = imageRepository.loaded
 
+  val drawingArea = Area(
+    Position(0, 0),
+    Size(renderingContext.canvas.width, renderingContext.canvas.height)
+  )
   val viewportRange = 5
   val cellEdge = drawingArea.size.width / (viewportRange * 2 + 1).toDouble
 
@@ -54,7 +58,7 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D,
         drawGridImage(imageRepository.wall, position)
     }
 
-    drawGridImage(imageRepository.spider, gameState.player.position)
+    drawGridImage(imageRepository.nugget, gameState.player.position)
 
     //debug
 //    drawGrid()
@@ -126,8 +130,12 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D,
 }
 
 
-class MinimapViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D, drawingArea: Area) {
+class MinimapViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D) {
 
+  val drawingArea = Area(
+    Position(0, 0),
+    Size(renderingContext.canvas.width, renderingContext.canvas.height)
+  )
 
   def draw(gameState: GameState) = {
 
@@ -157,7 +165,7 @@ class MinimapViewportDrawingContext(renderingContext: dom.CanvasRenderingContext
     }
 
     renderingContext.strokeStyle = Color.White.toString
-    renderingContext.lineWidth = 5
+    renderingContext.lineWidth = 2
     renderingContext.strokeRect(
       drawingArea.position.x + gameState.player.viewport.position.x * cellEdge,
       drawingArea.position.y + gameState.player.viewport.position.y * cellEdge,

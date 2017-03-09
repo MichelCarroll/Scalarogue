@@ -1,32 +1,40 @@
 
+import org.scalajs
 import org.scalajs.dom
+import org.scalajs.dom.ext.Color
 import org.scalajs.dom.html
+import org.w3c.dom.html.HTMLLIElement
 
 import scala.scalajs.js.annotation.JSExport
 import scala.concurrent.ExecutionContext.Implicits.global
 
 
+class NotificationContext(messagesList: html.UList, messageContainer: html.Div) {
+
+  def notify(text: String, color: Color): Unit = {
+    val message = dom.document.createElement("li")
+    message.textContent = text
+    message.setAttribute("style", s"color: ${color.toString}")
+    messagesList.appendChild(message)
+    messageContainer.scrollTop = messageContainer.scrollHeight
+  }
+}
+
 @JSExport
 object Main {
 
   @JSExport
-  def main(canvas: html.Canvas): Unit = {
-
-    val canvasSize = Size(2500, 2000)
-    val mainGameViewportArea = Area(Position(0, 0), Size(2000, 2000))
-    val minimapViewportArea =  Area(Position(2000, 0), Size(500, 500))
-
-    val renderingContext = canvas.getContext("2d").asInstanceOf[dom.CanvasRenderingContext2D]
-    renderingContext.canvas.width = canvasSize.width
-    renderingContext.canvas.height = canvasSize.height
+  def main(viewportCanvas: html.Canvas, minimapCanvas: html.Canvas, messagesList: html.UList, messageContainer: html.Div): Unit = {
 
     val mainViewportDrawingContext = new MainViewportDrawingContext(
-      renderingContext = renderingContext,
-      drawingArea = mainGameViewportArea
+      renderingContext = viewportCanvas.getContext("2d").asInstanceOf[dom.CanvasRenderingContext2D]
     )
     val minimapDrawingContext = new MinimapViewportDrawingContext(
-      renderingContext = renderingContext,
-      drawingArea = minimapViewportArea
+      renderingContext = minimapCanvas.getContext("2d").asInstanceOf[dom.CanvasRenderingContext2D]
+    )
+    val notificationContext = new NotificationContext(
+      messagesList = messagesList,
+      messageContainer = messageContainer
     )
 
     var gameState = GameState.start(1512512)
@@ -37,12 +45,15 @@ object Main {
     }
 
     dom.document.onkeydown = (e: dom.KeyboardEvent) => {
-      gameState = PlayerCommand.fromKeyCode(e.keyCode)
+      val (notifications, newGameState) = PlayerCommand.fromKeyCode(e.keyCode)
         .map(gameState.applyPlayerCommand(_))
-        .getOrElse(gameState)
+        .getOrElse((List(), gameState))
+      gameState = newGameState
+      notifications.foreach(notification => notificationContext.notify(notification.message, Color.White))
       redraw()
     }
 
     mainViewportDrawingContext.ready.map(_ => redraw())
+
   }
 }

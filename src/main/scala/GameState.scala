@@ -12,25 +12,33 @@ case class Player(position: Position, being: Being) {
   )
 }
 
+case class Notification(message: String)
+
 case class GameState(dungeon: Dungeon, player: Player, rng: RNG) {
   import PlayerCommand._
 
-  def applyPlayerCommand(playerCommand: PlayerCommand): GameState = {
+  def applyPlayerCommand(playerCommand: PlayerCommand): (List[Notification], GameState) = {
 
-    def attemptNewPosition(newPosition: Position): GameState =
+    def attemptNewPosition(newPosition: Position): (List[Notification], GameState) =
       dungeon.cells.get(newPosition) match {
 
         case Some(OpenCell(Some(being: Enemy), structure, item)) =>
-          this.copy(dungeon = dungeon.copy(dungeon.cells.updated(newPosition, OpenCell(None, structure, item))))
+          (
+            List(Notification(s"You slay a ${being.name}!")),
+            this.copy(dungeon = dungeon.copy(dungeon.cells.updated(newPosition, OpenCell(None, structure, item))))
+          )
 
         case Some(OpenCell(being, Some(structure: Openable), item)) =>
-          this.copy(dungeon = dungeon.copy(dungeon.cells.updated(newPosition, OpenCell(being, Some(structure.opened), item))))
+          (
+            List(Notification(s"You open a door")),
+            this.copy(dungeon = dungeon.copy(dungeon.cells.updated(newPosition, OpenCell(being, Some(structure.opened), item))))
+          )
 
         case Some(cell) if cell.passable =>
-          this.copy(player = player.copy(newPosition))
+          (List(), this.copy(player = player.copy(newPosition)))
 
         case _ =>
-          this
+          (List(), this)
 
       }
 
