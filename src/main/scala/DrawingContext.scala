@@ -37,20 +37,22 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D)
       .toMap
 
     cellsInLineOfSight.foreach {
-      case (position, Some(OpenCell(being, structure, _))) =>
+      case (position, Some(OpenCell(being, structure, items))) =>
         drawGridImage(imageRepository.floor, position)
         structure match {
           case Some(ClosedDoor) => drawGridImage(imageRepository.closed_door, position)
           case Some(OpenedDoor) => drawGridImage(imageRepository.open_door, position)
           case Some(Downstairs) => drawGridImage(imageRepository.downstairs, position)
           case Some(Upstairs) =>   drawGridImage(imageRepository.upstairs, position)
-          case Some(_) =>
           case None =>
         }
         being match {
           case Some(Nugget) => drawGridImage(imageRepository.nugget, position)
           case Some(Spider) => drawGridImage(imageRepository.spider, position)
           case None =>
+        }
+        items.foreach {
+          case Gold(_) => drawGridImage(imageRepository.gold, position)
         }
       case (position, Some(ClosedCell)) =>
         drawGridImage(imageRepository.wall, position)
@@ -231,35 +233,3 @@ class DebugDrawingContext(renderingContext: dom.CanvasRenderingContext2D, size: 
     renderingContext.fillRect(position.x * cellEdge, position.y * cellEdge, size.width * cellEdge, size.height * cellEdge)
   }
 }
-
-
-/*
-
-  val innerCharacterWidth = 15
-  val alphabetIndexMapping = (
-    ('a' to 'z').zip(0 to 25)
-      ++ ('0' to '9').zip(26 to 35)
-    ).toMap
-
-  private def drawText(canvasPosition: CanvasPosition, text: String): Unit = {
-    val imageHeight = 20
-    val imageWidth = 20
-
-    renderingContext.save()
-    renderingContext.translate(canvasPosition.x, canvasPosition.y)
-
-    text
-      .toLowerCase
-      .map(alphabetIndexMapping.get)
-      .foreach {
-        case Some(index) =>
-          renderingContext.translate(innerCharacterWidth, 0)
-          renderingContext.drawImage(imageRepository.alphabet.element, index * 50, 0, 50, 50, -imageWidth / 2, -imageHeight / 2, imageWidth, imageHeight)
-
-        case _ =>
-          renderingContext.translate(innerCharacterWidth, 0)
-      }
-
-    renderingContext.restore()
-  }
- */

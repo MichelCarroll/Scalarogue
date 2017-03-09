@@ -22,20 +22,37 @@ case class GameState(dungeon: Dungeon, player: Player, rng: RNG) {
     def attemptNewPosition(newPosition: Position): (List[Notification], GameState) =
       dungeon.cells.get(newPosition) match {
 
-        case Some(OpenCell(Some(being: Enemy), structure, item)) =>
+        case Some(OpenCell(Some(enemy: Enemy), structure, itemOnGround)) =>
           (
-            List(Notification(s"You slay a ${being.name}!")),
-            this.copy(dungeon = dungeon.copy(dungeon.cells.updated(newPosition, OpenCell(None, structure, item))))
+            enemy.drop match {
+              case Some(item) => List(Notification(s"You slay a ${enemy.name}, and he drops ${item.amount} ${item.name}!"))
+              case None => List(Notification(s"You slay a ${enemy.name}!"))
+            },
+            this.copy(dungeon = dungeon.copy(dungeon.cells.updated(newPosition, OpenCell(
+              None,
+              structure,
+              enemy.drop.map(itemOnGround + _).getOrElse(itemOnGround)
+            ))))
           )
 
-        case Some(OpenCell(being, Some(structure: Openable), item)) =>
+        case Some(OpenCell(None, Some(structure: Openable), items)) =>
           (
             List(Notification(s"You open a door")),
-            this.copy(dungeon = dungeon.copy(dungeon.cells.updated(newPosition, OpenCell(being, Some(structure.opened), item))))
+            this.copy(dungeon = dungeon.copy(dungeon.cells.updated(newPosition, OpenCell(None, Some(structure.opened), items))))
           )
 
-        case Some(cell) if cell.passable =>
-          (List(), this.copy(player = player.copy(newPosition)))
+        case Some(cell@OpenCell(None, structure, items)) if cell.passable =>
+          (
+            items.map(item => Notification(s"You pick up ${item.amount} ${item.name}")).toList,
+            this.copy(
+              player = player.copy(newPosition),
+              dungeon = dungeon.copy(dungeon.cells.updated(newPosition, OpenCell(
+                None,
+                structure,
+                Set()
+              )))
+            )
+          )
 
         case _ =>
           (List(), this)
