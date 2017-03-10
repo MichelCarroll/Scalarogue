@@ -39,10 +39,7 @@ object Main {
 
     var gameState = GameState.start(1512512)
 
-    def redraw(): Unit = {
-      mainViewportDrawingContext.draw(gameState)
-      minimapDrawingContext.draw(gameState)
-    }
+    mainViewportDrawingContext.ready.map(_ => redraw())
 
     dom.document.onkeydown = (e: dom.KeyboardEvent) => {
       val (notifications, newGameState) = PlayerCommand.fromKeyCode(e.keyCode)
@@ -53,7 +50,11 @@ object Main {
       redraw()
     }
 
-    mainViewportDrawingContext.ready.map(_ => redraw())
+    def redraw(): Unit = {
+      mainViewportDrawingContext.draw(gameState)
+      minimapDrawingContext.draw(gameState)
+    }
+
 
   }
 }
