@@ -1,7 +1,13 @@
 
 import RNG.Rand
 
-case class Dungeon(cells: Map[Position, Cell], area: Area, entrancePosition: Position)
+case class Dungeon(cells: Map[Position, Cell], area: Area, entrancePosition: Position) {
+
+  def withUpdatedCell(at: Position, cell: Cell) = copy(
+    cells = cells.updated(at, cell)
+  )
+
+}
 
 object DungeonGenerator {
 

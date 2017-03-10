@@ -1,4 +1,5 @@
-
+import DungeonGenerator.GenerationError
+import RNG.Rand
 
 
 case class Notification(message: String)
@@ -8,8 +9,8 @@ case class GameState(dungeon: Dungeon, player: Player, rng: RNG) {
 
   def applyPlayerCommand(playerCommand: PlayerCommand): (List[Notification], GameState) = {
 
-    def attemptNewPosition(newPosition: Position): (List[Notification], GameState) =
-      dungeon.cells.get(newPosition) match {
+    def attemptNewPosition(position: Position): (List[Notification], GameState) =
+      dungeon.cells.get(position) match {
 
         case Some(OpenCell(Some(enemy: Enemy), structure, itemOnGround)) =>
           (
@@ -17,29 +18,27 @@ case class GameState(dungeon: Dungeon, player: Player, rng: RNG) {
               case Some(item) => List(Notification(s"You slay a ${enemy.name}, and he drops ${item.amount} ${item.name}!"))
               case None => List(Notification(s"You slay a ${enemy.name}!"))
             },
-            this.copy(dungeon = dungeon.copy(dungeon.cells.updated(newPosition, OpenCell(
-              None,
-              structure,
-              enemy.drop.map(itemOnGround + _).getOrElse(itemOnGround)
-            ))))
+            this.copy(dungeon = dungeon.withUpdatedCell(position,
+              OpenCell(None, structure, enemy.drop.map(itemOnGround + _).getOrElse(itemOnGround))
+            ))
           )
 
         case Some(OpenCell(None, Some(structure: Openable), items)) =>
           (
             List(Notification(s"You open a door")),
-            this.copy(dungeon = dungeon.copy(dungeon.cells.updated(newPosition, OpenCell(None, Some(structure.opened), items))))
+            this.copy(dungeon = dungeon.withUpdatedCell(position,
+              OpenCell(None, Some(structure.opened), items)
+            ))
           )
 
         case Some(cell@OpenCell(None, structure, items)) if cell.passable =>
           (
             items.map(item => Notification(s"You pick up ${item.amount} ${item.name}")).toList,
             this.copy(
-              player = player.copy(newPosition),
-              dungeon = dungeon.copy(dungeon.cells.updated(newPosition, OpenCell(
-                None,
-                structure,
-                Set()
-              )))
+              player = player.copy(position),
+              dungeon = dungeon.withUpdatedCell(position,
+                OpenCell(None, structure, Set())
+              )
             )
           )
 
@@ -59,22 +58,25 @@ case class GameState(dungeon: Dungeon, player: Player, rng: RNG) {
 }
 
 object GameState {
-  def start(seed: Long): GameState = {
 
+  def generatedDungeon: Rand[Either[GenerationError, Dungeon]] = rng => {
     val gridSize = Size(50, 50)
-    val rng = SimpleRNG(seed)
     val (randomTree, newRng) = BSPTree.buildRandomTree(minLeafSurface = 0.02, maxLeafSurface = 0.15, skewdnessCutoff = 0.8)(rng)
     val ((_, floorplan), newRng2) = FloorplanGenerator.generate(randomTree, gridSize)(newRng)
     val (dungeonEither, newRng3) = DungeonGenerator.generate(floorplan)(newRng2)
+    (dungeonEither, newRng3)
+  }
 
-    dungeonEither match {
-      case Right(dungeon) =>
+  def start(seed: Long): GameState = {
+
+    generatedDungeon(SimpleRNG(seed)) match {
+      case (Right(dungeon), newRng) =>
         GameState(
           dungeon = dungeon,
           player = Player(dungeon.entrancePosition, Nugget),
-          rng = newRng3
+          rng = newRng
         )
-      case Left(error) => throw new Exception("Dungeon generation failed")
+      case (Left(error), _) => throw new Exception("Dungeon generation failed")
     }
 
   }

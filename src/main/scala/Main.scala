@@ -43,7 +43,7 @@ object Main {
 
     dom.document.onkeydown = (e: dom.KeyboardEvent) => {
       val (notifications, newGameState) = PlayerCommand.fromKeyCode(e.keyCode)
-        .map(gameState.applyPlayerCommand(_))
+        .map(gameState.applyPlayerCommand)
         .getOrElse((List(), gameState))
       gameState = newGameState
       notifications.foreach(notification => notificationContext.notify(notification.message, Color.White))
