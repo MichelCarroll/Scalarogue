@@ -7,8 +7,6 @@ case class CanvasPosition(x: Double, y: Double)
 
 class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D) {
 
-  import Structure._
-
   val imageRepository = new ImageRepository(renderingContext)
 
   def ready = imageRepository.loaded
@@ -22,6 +20,8 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D)
 
   def draw(gameState: GameState) = {
 
+    val viewport = Player.viewport(gameState.dungeon.playerPosition)
+
     renderingContext.fillStyle = Color.Black.toString
     renderingContext.fillRect(
       drawingArea.position.x,
@@ -30,10 +30,9 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D)
       drawingArea.size.height
     )
 
-    val cellsInLineOfSight = gameState
-      .player
-      .positionsWithinRangeTouchedByPerimeterRay(gameState.dungeon)
-      .intersect(gameState.player.viewport.positions)
+    val cellsInLineOfSight = Player
+      .positionsWithinRangeTouchedByPerimeterRay(gameState.dungeon.playerPosition, gameState.dungeon)
+      .intersect(Player.viewport(gameState.dungeon.playerPosition).positions)
       .map(position => position -> gameState.dungeon.cells.get(position))
       .toMap
 
@@ -48,7 +47,7 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D)
           case None =>
         }
         being match {
-          case Some(Nugget) => drawGridImage(imageRepository.nugget, position)
+          case Some(Player) => drawGridImage(imageRepository.nugget, position)
           case Some(Spider) => drawGridImage(imageRepository.spider, position)
           case None =>
         }
@@ -61,7 +60,7 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D)
         drawGridImage(imageRepository.wall, position)
     }
 
-    drawGridImage(imageRepository.nugget, gameState.player.position)
+
 
     //debug
 //    drawGrid()
@@ -79,8 +78,8 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D)
     }
 
     def canvasVector(vector: Vector): CanvasPosition = CanvasPosition(
-      (vector.x - gameState.player.viewport.topLeft.x) * cellEdge + drawingArea.position.x,
-      (vector.y - gameState.player.viewport.topLeft.y) * cellEdge + drawingArea.position.y
+      (vector.x - viewport.topLeft.x) * cellEdge + drawingArea.position.x,
+      (vector.y - viewport.topLeft.y) * cellEdge + drawingArea.position.y
     )
 
     def drawGridImage(image: Image, position: Position): Unit = {
@@ -121,10 +120,10 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D)
         renderingContext.stroke()
       }
 
-      for(x <- 0 to gameState.player.viewport.size.width)
-        drawGridLine(CanvasPosition(x * cellEdge,0), CanvasPosition(x * cellEdge, gameState.player.viewport.size.height * cellEdge))
-      for(y <- 0 to gameState.player.viewport.size.height)
-        drawGridLine(CanvasPosition(0, y * cellEdge), CanvasPosition(gameState.player.viewport.size.width * cellEdge, y * cellEdge))
+      for(x <- 0 to viewport.size.width)
+        drawGridLine(CanvasPosition(x * cellEdge,0), CanvasPosition(x * cellEdge, viewport.size.height * cellEdge))
+      for(y <- 0 to viewport.size.height)
+        drawGridLine(CanvasPosition(0, y * cellEdge), CanvasPosition(viewport.size.width * cellEdge, y * cellEdge))
     }
 
   }
@@ -141,6 +140,8 @@ class MinimapViewportDrawingContext(renderingContext: dom.CanvasRenderingContext
   )
 
   def draw(gameState: GameState) = {
+
+    val viewport = Player.viewport(gameState.dungeon.playerPosition)
 
     renderingContext.fillStyle = Color.Black.toString
     renderingContext.fillRect(
@@ -170,10 +171,10 @@ class MinimapViewportDrawingContext(renderingContext: dom.CanvasRenderingContext
     renderingContext.strokeStyle = Color.White.toString
     renderingContext.lineWidth = 2
     renderingContext.strokeRect(
-      drawingArea.position.x + gameState.player.viewport.position.x * cellEdge,
-      drawingArea.position.y + gameState.player.viewport.position.y * cellEdge,
-      gameState.player.viewport.size.width * cellEdge,
-      gameState.player.viewport.size.height * cellEdge
+      drawingArea.position.x + viewport.position.x * cellEdge,
+      drawingArea.position.y + viewport.position.y * cellEdge,
+      viewport.size.width * cellEdge,
+      viewport.size.height * cellEdge
     )
 
   }

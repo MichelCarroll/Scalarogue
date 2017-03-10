@@ -4,12 +4,12 @@ import RNG.Rand
 
 case class Notification(message: String)
 
-case class GameState(dungeon: Dungeon, player: Player, rng: RNG) {
+case class GameState(dungeon: Dungeon, rng: RNG) {
   import PlayerCommand._
 
   def applyPlayerCommand(playerCommand: PlayerCommand): (List[Notification], GameState) = {
 
-    def attemptNewPosition(position: Position): (List[Notification], GameState) =
+    def attemptNewPlayerPosition(position: Position): (List[Notification], GameState) =
       dungeon.cells.get(position) match {
 
         case Some(OpenCell(Some(enemy: Enemy), structure, itemOnGround)) =>
@@ -35,10 +35,9 @@ case class GameState(dungeon: Dungeon, player: Player, rng: RNG) {
           (
             items.map(item => Notification(s"You pick up ${item.amount} ${item.name}")).toList,
             this.copy(
-              player = player.copy(position),
-              dungeon = dungeon.withUpdatedCell(position,
-                OpenCell(None, structure, Set())
-              )
+              dungeon = dungeon
+                .withRemovedBeing(dungeon.playerPosition)
+                .withUpdatedCell(position, OpenCell(Some(Player), structure, Set()))
             )
           )
 
@@ -48,10 +47,10 @@ case class GameState(dungeon: Dungeon, player: Player, rng: RNG) {
       }
 
     playerCommand match {
-      case Up => attemptNewPosition(player.position.up(1))
-      case Down => attemptNewPosition(player.position.down(1))
-      case Left => attemptNewPosition(player.position.left(1))
-      case Right => attemptNewPosition(player.position.right(1))
+      case Up => attemptNewPlayerPosition(dungeon.playerPosition.up(1))
+      case Down => attemptNewPlayerPosition(dungeon.playerPosition.down(1))
+      case Left => attemptNewPlayerPosition(dungeon.playerPosition.left(1))
+      case Right => attemptNewPlayerPosition(dungeon.playerPosition.right(1))
     }
   }
 
@@ -73,7 +72,6 @@ object GameState {
       case (Right(dungeon), newRng) =>
         GameState(
           dungeon = dungeon,
-          player = Player(dungeon.entrancePosition, Nugget),
           rng = newRng
         )
       case (Left(error), _) => throw new Exception("Dungeon generation failed")

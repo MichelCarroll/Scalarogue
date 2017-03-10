@@ -7,14 +7,27 @@ case class Dungeon(cells: Map[Position, Cell], area: Area, entrancePosition: Pos
     cells = cells.updated(at, cell)
   )
 
+  def withRemovedBeing(at: Position) = copy(
+    cells = cells.get(at) match {
+      case Some(OpenCell(_, structure, items)) => cells.updated(at, OpenCell(None, structure, items))
+      case _ => cells
+    }
+  )
+
+  def playerPosition: Position = cells
+    .find {
+      case (_, OpenCell(Some(Player), _, _)) => true
+      case _ => false
+    }
+    .map(_._1)
+    .getOrElse(throw new Exception("Could not find player"))
+
 }
 
 object DungeonGenerator {
 
   trait GenerationError
   case object NeedAtLeastTwoRoomTiles extends GenerationError
-
-  import Structure._
 
   def generate(floorplan: Floorplan): Rand[Either[GenerationError, Dungeon]] = rng => {
     var varRng = rng
@@ -56,7 +69,7 @@ object DungeonGenerator {
 
       val dungeon = Dungeon(
         cells = wallCells ++ floorplanCells
-          + (entrancePosition -> OpenCell(structure = Some(Upstairs)))
+          + (entrancePosition -> OpenCell(being = Some(Player), structure = Some(Upstairs)))
           + (exitPosition -> OpenCell(structure = Some(Downstairs))),
         area = Area(Position(0,0), floorplan.size),
         entrancePosition = entrancePosition
