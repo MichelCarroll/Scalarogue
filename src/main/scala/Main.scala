@@ -1,9 +1,7 @@
 
-import org.scalajs
 import org.scalajs.dom
 import org.scalajs.dom.ext.Color
 import org.scalajs.dom.html
-import org.w3c.dom.html.HTMLLIElement
 
 import scala.scalajs.js.annotation.JSExport
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -39,22 +37,37 @@ object Main {
 
     var gameState = GameState.start(1512512)
 
-    mainViewportDrawingContext.ready.map(_ => redraw())
+    mainViewportDrawingContext.ready.map(_ =>
+      gameState.dungeon.positionedPlayer.foreach(positionedPlayer =>
+        redraw(gameState, positionedPlayer)
+      )
+    )
 
     dom.document.onkeydown = (e: dom.KeyboardEvent) => {
       Command.fromKeyCode(e.keyCode).foreach(executeTurn)
     }
 
     def executeTurn(playerCommand: Command) = {
-      val (notifications, newGameState) = gameState.applyCommand(gameState.dungeon.positionedPlayer, playerCommand)
-      gameState = newGameState
-      notifications.foreach(notification => notificationContext.notify(notification.message, Color.White))
-      redraw()
+
+      gameState.dungeon.positionedPlayer.foreach(positionedPlayer => {
+        val transition = gameState.applyCommand(positionedPlayer, playerCommand)
+        val postAITransition = transition.newState.dungeon.positionedBeings(Spider)
+          .foldLeft((transition.notifications, transition.newState))((last, positionedBeing) => {
+            val transition = last._2.applyCommand(positionedBeing, playerCommand)
+            (last._1 ++ transition.notifications, transition.newState)
+          })
+          gameState = postAITransition._2
+          postAITransition._1.foreach(notification => notificationContext.notify(notification.message, Color.White))
+        })
+
+      gameState.dungeon.positionedPlayer.foreach(positionedPlayer => {
+        redraw(gameState, positionedPlayer)
+      })
     }
 
-    def redraw(): Unit = {
-      mainViewportDrawingContext.draw(gameState)
-      minimapDrawingContext.draw(gameState)
+    def redraw(gameState: GameState, positionedPlayer: PositionedBeing): Unit = {
+      mainViewportDrawingContext.drawFromPerspective(gameState, positionedPlayer.position)
+      minimapDrawingContext.draw(gameState, positionedPlayer.position)
     }
 
 

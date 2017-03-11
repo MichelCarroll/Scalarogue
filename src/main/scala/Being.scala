@@ -4,7 +4,9 @@
 
 sealed trait BeingDescriptor {
   def name: String
+  def pronoun: String
   def drop: Option[Item]
+  def isThirdPerson = true
 }
 
 case object SpiderGenerator {
@@ -12,7 +14,8 @@ case object SpiderGenerator {
 }
 
 case object Spider extends BeingDescriptor {
-  def name = "spider"
+  def name = "a spider"
+  def pronoun = "it"
   def drop: Option[Item] = Some(Gold(5))
 }
 
@@ -27,7 +30,9 @@ case object PlayerGenerator {
 
 case object Player extends BeingDescriptor with Sighted {
 
-  val name = "player"
+  override def isThirdPerson = false
+  val name = "you"
+  val pronoun = "your"
   def drop = None
 
   private val viewportRange = 6

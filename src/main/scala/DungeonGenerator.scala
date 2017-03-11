@@ -16,19 +16,18 @@ case class Dungeon(cells: Map[Position, Cell], area: Area, entrancePosition: Pos
     }
   )
 
-  def positionedPlayer: PositionedBeing = cells
+  def positionedPlayer: Option[PositionedBeing] = cells
     .map {
       case (position, OpenCell(Some(player@Being(Player, _)), _, _)) => Some(PositionedBeing(position, player))
       case _ => None
     }
     .find(_.isDefined)
-    .map(_.get)
-    .getOrElse(throw new Exception("Could not find player"))
+    .flatten
 
 
-  def positionsOfBeings(target: BeingDescriptor) = cells
+  def positionedBeings(target: BeingDescriptor) = cells
     .flatMap {
-      case (position, OpenCell(Some(player@Being(descriptor, _)), _, _)) if descriptor == target => Some(position)
+      case (position, OpenCell(Some(being@Being(descriptor, _)), _, _)) if descriptor == target => Some(PositionedBeing(position, being))
       case _ => None
     }
     .toSet

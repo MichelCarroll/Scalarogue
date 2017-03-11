@@ -9,48 +9,22 @@ case class Notification(message: String)
 case class GameState(dungeon: Dungeon, rng: RNG) {
   import Command._
 
-  def applyCommand(positionedBeing: PositionedBeing, command: Command): (List[Notification], GameState) = {
+  def applyCommand(positionedBeing: PositionedBeing, command: Command): GameTransition = {
 
-    def attemptNewPosition(position: Position): (List[Notification], GameState) =
+    def attemptNewPosition(position: Position): GameTransition =
       dungeon.cells.get(position) match {
 
-        case Some(OpenCell(Some(being: Being), structure, itemsOnGround)) =>
-          val damage = 1
-          val newBeing = being.hit(damage)
-          val damageNotification = Notification(s"You hit the ${newBeing.descriptor.name} for $damage damage!")
-          if(newBeing.dead) (
-              newBeing.descriptor.drop match {
-                case Some(item) => List(damageNotification, Notification(s"You slay a ${newBeing.descriptor.name}, and he drops ${item.amount} ${item.name}!"))
-                case None => List(damageNotification, Notification(s"You slay a ${newBeing.descriptor.name}!"))
-              },
-              this.copy(dungeon = dungeon.withUpdatedCell(position,
-                OpenCell(None, structure, being.descriptor.drop.map(itemsOnGround + _).getOrElse(itemsOnGround))
-              ))
-          ) else (
-            List(damageNotification),
-            this.copy(dungeon = dungeon.withUpdatedCell(position, OpenCell(Some(newBeing), structure, itemsOnGround)))
-          )
+        case Some(cell@OpenCell(Some(being: Being), structure, itemsOnGround)) =>
+          HitTransition(positionedBeing.being, being, cell, position, this)
 
         case Some(OpenCell(None, Some(structure: Openable), items)) =>
-          (
-            List(Notification(s"You open a door")),
-            this.copy(dungeon = dungeon.withUpdatedCell(position,
-              OpenCell(None, Some(structure.opened), items)
-            ))
-          )
+          OpenTransition(positionedBeing.being, OpenCell(None, Some(structure.opened), items), position, this)
 
         case Some(cell@OpenCell(None, structure, items)) if cell.passable =>
-          (
-            items.map(item => Notification(s"You pick up ${item.amount} ${item.name}")).toList,
-            this.copy(
-              dungeon = dungeon
-                .withRemovedBeing(positionedBeing.position)
-                .withUpdatedCell(position, OpenCell(Some(positionedBeing.being), structure, Set()))
-            )
-          )
+          MoveTransition(positionedBeing.being, positionedBeing.position, cell, position, OpenCell(Some(positionedBeing.being), structure, Set()), items, this)
 
         case _ =>
-          (List(), this)
+          IdentityTransition(this)
 
       }
 
@@ -61,6 +35,62 @@ case class GameState(dungeon: Dungeon, rng: RNG) {
       case Right => attemptNewPosition(positionedBeing.position.right(1))
     }
   }
+
+}
+
+trait GameTransition {
+  def newState: GameState
+  def notifications: List[Notification]
+}
+
+case class IdentityTransition(state: GameState) extends GameTransition {
+  def newState = state
+  def notifications = List()
+}
+
+case class MoveTransition(subject: Being, oldCellPosition: Position, oldCell: OpenCell, newCellPosition: Position, newCell: OpenCell, items: Set[Item], state: GameState) extends GameTransition  {
+
+  val verb = if(subject.descriptor.isThirdPerson) "picks up" else "pick up"
+  def notifications = items.map(item => Notification(s"${subject.descriptor.name} $verb ${item.amount} ${item.name}")).toList
+
+  def newState =  state.copy(
+    dungeon = state.dungeon
+      .withRemovedBeing(oldCellPosition)
+      .withUpdatedCell(newCellPosition, newCell)
+  )
+
+}
+
+case class OpenTransition(subject: Being, newCell: Cell, position: Position, state: GameState) extends GameTransition  {
+  val verb = if(subject.descriptor.isThirdPerson) "opens" else "open"
+  def notifications = List(Notification(s"${subject.descriptor.name} $verb a door"))
+  def newState = state.copy(dungeon = state.dungeon.withUpdatedCell(position, newCell))
+}
+
+case class HitTransition(sourceBeing: Being, targetBeing: Being, targetCell: OpenCell, targetBeingPosition: Position, state: GameState) extends GameTransition  {
+
+  val hitVerb = if(sourceBeing.descriptor.isThirdPerson) "hits" else "hit"
+  val slayVerb = if(sourceBeing.descriptor.isThirdPerson) "slays" else "slay"
+
+  val damage = 1
+  val newBeing = targetBeing.hit(damage)
+  val damageNotification = Notification(s"${sourceBeing.descriptor.name} $hitVerb ${newBeing.descriptor.name} for $damage damage!")
+
+  def notifications =
+    if(newBeing.dead)
+      newBeing.descriptor.drop match {
+        case Some(item) => List(damageNotification, Notification(s"${sourceBeing.descriptor.name} $slayVerb ${newBeing.descriptor.name}, and ${targetBeing.descriptor.pronoun} drops ${item.amount} ${item.name}!"))
+        case None => List(damageNotification, Notification(s"${sourceBeing.descriptor.name} $slayVerb ${newBeing.descriptor.name}!"))
+      }
+    else List(damageNotification)
+
+  def newState =
+    if(newBeing.dead)
+      state.copy(dungeon = state.dungeon.withUpdatedCell(targetBeingPosition,
+        OpenCell(None, targetCell.structure, newBeing.descriptor.drop.map(targetCell.item + _).getOrElse(targetCell.item))
+      ))
+    else
+      state.copy(dungeon = state.dungeon.withUpdatedCell(targetBeingPosition, OpenCell(Some(newBeing), targetCell.structure, targetCell.item)))
 
 }
 
