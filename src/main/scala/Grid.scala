@@ -18,9 +18,13 @@ case class Position(x: Int, y: Int) {
   def right(s: Int) = towards(Right, s)
   def down(s: Int) = towards(Down, s)
 
-  def sides: Set[Position] = Direction.all.map(towards(_, 1))
+  def sides: Set[Position] = neighbors.map(_._2)
+
+  def neighbors: Set[(Direction, Position)] = Direction.all.map(direction => (direction, towards(direction, 1)))
 
   def vector = Vector(x, y)
+
+  def manhattanDistanceTo(other: Position): Int = Math.abs(other.x - x) + Math.abs(other.y - y)
 }
 
 case class Angle(radians: Double) {

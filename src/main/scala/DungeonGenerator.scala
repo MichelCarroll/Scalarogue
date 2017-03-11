@@ -1,7 +1,7 @@
 
 import RNG.Rand
 
-case class Dungeon(cells: Map[Position, Cell], area: Area, entrancePosition: Position) {
+case class Dungeon(cells: Map[Position, Cell], area: Area, entrancePosition: Position) extends Navigatable {
 
   def withUpdatedCell(at: Position, cell: Cell) = copy(
     cells = cells.updated(at, cell)
@@ -23,6 +23,13 @@ case class Dungeon(cells: Map[Position, Cell], area: Area, entrancePosition: Pos
     .map(_.get)
     .getOrElse(throw new Exception("Could not find player"))
 
+
+  def positionsOfBeings(target: BeingDescriptor) = cells
+    .flatMap {
+      case (position, OpenCell(Some(player@Being(descriptor, _)), _, _)) if descriptor == target => Some(position)
+      case _ => None
+    }
+    .toSet
 }
 
 object DungeonGenerator {

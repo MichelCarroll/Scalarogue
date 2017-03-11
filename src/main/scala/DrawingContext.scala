@@ -62,8 +62,6 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D)
         drawGridImage(imageRepository.wall, position)
     }
 
-
-
     //debug
 //    drawGrid()
 //    gameState.perimeterRays.foreach(ray => drawRay(ray, Color.Green))
@@ -126,6 +124,20 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D)
         drawGridLine(CanvasPosition(x * cellEdge,0), CanvasPosition(x * cellEdge, viewport.size.height * cellEdge))
       for(y <- 0 to viewport.size.height)
         drawGridLine(CanvasPosition(0, y * cellEdge), CanvasPosition(viewport.size.width * cellEdge, y * cellEdge))
+    }
+
+    def drawPathToClosestSpider() = {
+      gameState.dungeon.positionsOfBeings(Spider) match {
+        case spiders if spiders.isEmpty => None
+        case spiders =>
+          gameState.dungeon.bestDirectionTo(
+            gameState.dungeon.positionedPlayer._1,
+            spiders.minBy(_.manhattanDistanceTo(gameState.dungeon.positionedPlayer._1))
+          ).map(gameState.dungeon.positionedPlayer._1.towards(_, 1))
+      }
+    } match {
+      case Some(position) => drawDot(position, Color.Red)
+      case _ =>
     }
 
   }
