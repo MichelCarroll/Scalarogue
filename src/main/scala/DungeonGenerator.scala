@@ -1,6 +1,8 @@
 
 import RNG.Rand
 
+case class PositionedBeing(position: Position, being: Being)
+
 case class Dungeon(cells: Map[Position, Cell], area: Area, entrancePosition: Position) extends Navigatable {
 
   def withUpdatedCell(at: Position, cell: Cell) = copy(
@@ -14,9 +16,9 @@ case class Dungeon(cells: Map[Position, Cell], area: Area, entrancePosition: Pos
     }
   )
 
-  def positionedPlayer: (Position, Being) = cells
+  def positionedPlayer: PositionedBeing = cells
     .map {
-      case (position, OpenCell(Some(player@Being(Player, _)), _, _)) => Some((position, player))
+      case (position, OpenCell(Some(player@Being(Player, _)), _, _)) => Some(PositionedBeing(position, player))
       case _ => None
     }
     .find(_.isDefined)
@@ -30,6 +32,8 @@ case class Dungeon(cells: Map[Position, Cell], area: Area, entrancePosition: Pos
       case _ => None
     }
     .toSet
+
+
 }
 
 object DungeonGenerator {

@@ -1,3 +1,5 @@
+
+
 import DungeonGenerator.GenerationError
 import RNG.Rand
 
@@ -5,11 +7,11 @@ import RNG.Rand
 case class Notification(message: String)
 
 case class GameState(dungeon: Dungeon, rng: RNG) {
-  import PlayerCommand._
+  import Command._
 
-  def applyPlayerCommand(playerCommand: PlayerCommand): (List[Notification], GameState) = {
+  def applyCommand(positionedBeing: PositionedBeing, command: Command): (List[Notification], GameState) = {
 
-    def attemptNewPlayerPosition(position: Position): (List[Notification], GameState) =
+    def attemptNewPosition(position: Position): (List[Notification], GameState) =
       dungeon.cells.get(position) match {
 
         case Some(OpenCell(Some(being: Being), structure, itemsOnGround)) =>
@@ -42,8 +44,8 @@ case class GameState(dungeon: Dungeon, rng: RNG) {
             items.map(item => Notification(s"You pick up ${item.amount} ${item.name}")).toList,
             this.copy(
               dungeon = dungeon
-                .withRemovedBeing(dungeon.positionedPlayer._1)
-                .withUpdatedCell(position, OpenCell(Some(dungeon.positionedPlayer._2), structure, Set()))
+                .withRemovedBeing(positionedBeing.position)
+                .withUpdatedCell(position, OpenCell(Some(positionedBeing.being), structure, Set()))
             )
           )
 
@@ -52,11 +54,11 @@ case class GameState(dungeon: Dungeon, rng: RNG) {
 
       }
 
-    playerCommand match {
-      case Up => attemptNewPlayerPosition(dungeon.positionedPlayer._1.up(1))
-      case Down => attemptNewPlayerPosition(dungeon.positionedPlayer._1.down(1))
-      case Left => attemptNewPlayerPosition(dungeon.positionedPlayer._1.left(1))
-      case Right => attemptNewPlayerPosition(dungeon.positionedPlayer._1.right(1))
+    command match {
+      case Up => attemptNewPosition(positionedBeing.position.up(1))
+      case Down => attemptNewPosition(positionedBeing.position.down(1))
+      case Left => attemptNewPosition(positionedBeing.position.left(1))
+      case Right => attemptNewPosition(positionedBeing.position.right(1))
     }
   }
 
@@ -87,18 +89,18 @@ object GameState {
 }
 
 
-sealed trait PlayerCommand
-object PlayerCommand {
-  case object Up extends PlayerCommand
-  case object Down extends PlayerCommand
-  case object Right extends PlayerCommand
-  case object Left extends PlayerCommand
+sealed trait Command
+object Command {
+  case object Up extends Command
+  case object Down extends Command
+  case object Right extends Command
+  case object Left extends Command
 
-  def fromKeyCode(keyCode: Int): Option[PlayerCommand] = keyCode match {
-    case 37 => Some(PlayerCommand.Left)
-    case 38 => Some(PlayerCommand.Up)
-    case 39 => Some(PlayerCommand.Right)
-    case 40 => Some(PlayerCommand.Down)
+  def fromKeyCode(keyCode: Int): Option[Command] = keyCode match {
+    case 37 => Some(Command.Left)
+    case 38 => Some(Command.Up)
+    case 39 => Some(Command.Right)
+    case 40 => Some(Command.Down)
     case _  => None
   }
 }

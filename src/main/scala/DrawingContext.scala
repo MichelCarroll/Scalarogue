@@ -20,7 +20,7 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D)
 
   def draw(gameState: GameState) = {
 
-    val viewport = Player.viewport(gameState.dungeon.positionedPlayer._1)
+    val viewport = Player.viewport(gameState.dungeon.positionedPlayer.position)
 
     renderingContext.fillStyle = Color.Black.toString
     renderingContext.fillRect(
@@ -31,7 +31,7 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D)
     )
 
     val cellsInLineOfSight = Player
-      .positionsWithinRangeTouchedByPerimeterRay(gameState.dungeon.positionedPlayer._1, gameState.dungeon)
+      .positionsWithinRangeTouchedByPerimeterRay(gameState.dungeon.positionedPlayer.position, gameState.dungeon)
       .intersect(viewport.positions)
       .map(position => position -> gameState.dungeon.cells.get(position))
       .toMap
@@ -131,9 +131,9 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D)
         case spiders if spiders.isEmpty => None
         case spiders =>
           gameState.dungeon.bestDirectionTo(
-            gameState.dungeon.positionedPlayer._1,
-            spiders.minBy(_.manhattanDistanceTo(gameState.dungeon.positionedPlayer._1))
-          ).map(gameState.dungeon.positionedPlayer._1.towards(_, 1))
+            gameState.dungeon.positionedPlayer.position,
+            spiders.minBy(_.manhattanDistanceTo(gameState.dungeon.positionedPlayer.position))
+          ).map(gameState.dungeon.positionedPlayer.position.towards(_, 1))
       }
     } match {
       case Some(position) => drawDot(position, Color.Red)
@@ -155,7 +155,7 @@ class MinimapViewportDrawingContext(renderingContext: dom.CanvasRenderingContext
 
   def draw(gameState: GameState) = {
 
-    val viewport = Player.viewport(gameState.dungeon.positionedPlayer._1)
+    val viewport = Player.viewport(gameState.dungeon.positionedPlayer.position)
 
     renderingContext.fillStyle = Color.Black.toString
     renderingContext.fillRect(

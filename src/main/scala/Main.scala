@@ -42,9 +42,11 @@ object Main {
     mainViewportDrawingContext.ready.map(_ => redraw())
 
     dom.document.onkeydown = (e: dom.KeyboardEvent) => {
-      val (notifications, newGameState) = PlayerCommand.fromKeyCode(e.keyCode)
-        .map(gameState.applyPlayerCommand)
-        .getOrElse((List(), gameState))
+      Command.fromKeyCode(e.keyCode).foreach(executeTurn)
+    }
+
+    def executeTurn(playerCommand: Command) = {
+      val (notifications, newGameState) = gameState.applyCommand(gameState.dungeon.positionedPlayer, playerCommand)
       gameState = newGameState
       notifications.foreach(notification => notificationContext.notify(notification.message, Color.White))
       redraw()
