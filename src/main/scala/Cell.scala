@@ -4,14 +4,6 @@ sealed trait Item {
   val name: String
 }
 
-sealed trait Enemy extends Being {
-  def drop: Option[Item]
-}
-
-sealed trait Being {
-  val name: String
-}
-
 sealed trait Openable extends Structure {
   def opened: Structure
 }
@@ -30,11 +22,6 @@ sealed trait Cell {
 
 case class Gold(amount: Int) extends Item {
   val name = "gold"
-}
-
-case object Spider extends Being with Enemy {
-  val name: String = "spider"
-  def drop = Some(Gold(5))
 }
 
 case object ClosedDoor extends Structure with Openable with Blocking {
@@ -65,16 +52,4 @@ case class OpenCell(
 case object ClosedCell extends Cell {
   def passable = false
   def opaque = true
-}
-
-case object Player extends Being with Sighted {
-
-  val name = "Player"
-  private val viewportRange = 6
-  val lineOfLightRange = Math.ceil(Math.sqrt(2 * Math.pow(viewportRange, 2)))
-
-  def viewport(position: Position) = Area(
-    Position(position.x - viewportRange + 1, position.y - viewportRange + 1),
-    Position(position.x + viewportRange - 1, position.y + viewportRange - 1)
-  )
 }

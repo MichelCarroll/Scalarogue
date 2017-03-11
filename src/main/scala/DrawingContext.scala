@@ -20,7 +20,7 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D)
 
   def draw(gameState: GameState) = {
 
-    val viewport = Player.viewport(gameState.dungeon.playerPosition)
+    val viewport = Player.viewport(gameState.dungeon.positionedPlayer._1)
 
     renderingContext.fillStyle = Color.Black.toString
     renderingContext.fillRect(
@@ -31,8 +31,8 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D)
     )
 
     val cellsInLineOfSight = Player
-      .positionsWithinRangeTouchedByPerimeterRay(gameState.dungeon.playerPosition, gameState.dungeon)
-      .intersect(Player.viewport(gameState.dungeon.playerPosition).positions)
+      .positionsWithinRangeTouchedByPerimeterRay(gameState.dungeon.positionedPlayer._1, gameState.dungeon)
+      .intersect(viewport.positions)
       .map(position => position -> gameState.dungeon.cells.get(position))
       .toMap
 
@@ -47,8 +47,10 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D)
           case None =>
         }
         being match {
-          case Some(Player) => drawGridImage(imageRepository.nugget, position)
-          case Some(Spider) => drawGridImage(imageRepository.spider, position)
+          case Some(Being(beingDescriptor, _)) => beingDescriptor match {
+            case Player => drawGridImage(imageRepository.nugget, position)
+            case Spider => drawGridImage(imageRepository.spider, position)
+          }
           case None =>
         }
         items.foreach {
@@ -141,7 +143,7 @@ class MinimapViewportDrawingContext(renderingContext: dom.CanvasRenderingContext
 
   def draw(gameState: GameState) = {
 
-    val viewport = Player.viewport(gameState.dungeon.playerPosition)
+    val viewport = Player.viewport(gameState.dungeon.positionedPlayer._1)
 
     renderingContext.fillStyle = Color.Black.toString
     renderingContext.fillRect(

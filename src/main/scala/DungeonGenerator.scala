@@ -14,12 +14,13 @@ case class Dungeon(cells: Map[Position, Cell], area: Area, entrancePosition: Pos
     }
   )
 
-  def playerPosition: Position = cells
-    .find {
-      case (_, OpenCell(Some(Player), _, _)) => true
-      case _ => false
+  def positionedPlayer: (Position, Being) = cells
+    .map {
+      case (position, OpenCell(Some(player@Being(Player, _)), _, _)) => Some((position, player))
+      case _ => None
     }
-    .map(_._1)
+    .find(_.isDefined)
+    .map(_.get)
     .getOrElse(throw new Exception("Could not find player"))
 
 }
@@ -45,7 +46,7 @@ object DungeonGenerator {
         p match {
           case x if x < 0.0005 => OpenCell(structure = Some(Upstairs))
           case x if x < 0.001 =>  OpenCell(structure = Some(Downstairs))
-          case x if x < 0.015 =>  OpenCell(being = Some(Spider))
+          case x if x < 0.015 =>  OpenCell(being = Some(SpiderGenerator.generate))
           case _ => OpenCell()
         }
       }
@@ -69,7 +70,7 @@ object DungeonGenerator {
 
       val dungeon = Dungeon(
         cells = wallCells ++ floorplanCells
-          + (entrancePosition -> OpenCell(being = Some(Player), structure = Some(Upstairs)))
+          + (entrancePosition -> OpenCell(being = Some(PlayerGenerator.generate), structure = Some(Upstairs)))
           + (exitPosition -> OpenCell(structure = Some(Downstairs))),
         area = Area(Position(0,0), floorplan.size),
         entrancePosition = entrancePosition

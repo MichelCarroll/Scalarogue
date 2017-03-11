@@ -12,15 +12,21 @@ case class GameState(dungeon: Dungeon, rng: RNG) {
     def attemptNewPlayerPosition(position: Position): (List[Notification], GameState) =
       dungeon.cells.get(position) match {
 
-        case Some(OpenCell(Some(enemy: Enemy), structure, itemOnGround)) =>
-          (
-            enemy.drop match {
-              case Some(item) => List(Notification(s"You slay a ${enemy.name}, and he drops ${item.amount} ${item.name}!"))
-              case None => List(Notification(s"You slay a ${enemy.name}!"))
-            },
-            this.copy(dungeon = dungeon.withUpdatedCell(position,
-              OpenCell(None, structure, enemy.drop.map(itemOnGround + _).getOrElse(itemOnGround))
-            ))
+        case Some(OpenCell(Some(being: Being), structure, itemsOnGround)) =>
+          val damage = 1
+          val newBeing = being.hit(damage)
+          val damageNotification = Notification(s"You hit the ${newBeing.descriptor.name} for $damage damage!")
+          if(newBeing.dead) (
+              newBeing.descriptor.drop match {
+                case Some(item) => List(damageNotification, Notification(s"You slay a ${newBeing.descriptor.name}, and he drops ${item.amount} ${item.name}!"))
+                case None => List(damageNotification, Notification(s"You slay a ${newBeing.descriptor.name}!"))
+              },
+              this.copy(dungeon = dungeon.withUpdatedCell(position,
+                OpenCell(None, structure, being.descriptor.drop.map(itemsOnGround + _).getOrElse(itemsOnGround))
+              ))
+          ) else (
+            List(damageNotification),
+            this.copy(dungeon = dungeon.withUpdatedCell(position, OpenCell(Some(newBeing), structure, itemsOnGround)))
           )
 
         case Some(OpenCell(None, Some(structure: Openable), items)) =>
@@ -36,8 +42,8 @@ case class GameState(dungeon: Dungeon, rng: RNG) {
             items.map(item => Notification(s"You pick up ${item.amount} ${item.name}")).toList,
             this.copy(
               dungeon = dungeon
-                .withRemovedBeing(dungeon.playerPosition)
-                .withUpdatedCell(position, OpenCell(Some(Player), structure, Set()))
+                .withRemovedBeing(dungeon.positionedPlayer._1)
+                .withUpdatedCell(position, OpenCell(Some(dungeon.positionedPlayer._2), structure, Set()))
             )
           )
 
@@ -47,10 +53,10 @@ case class GameState(dungeon: Dungeon, rng: RNG) {
       }
 
     playerCommand match {
-      case Up => attemptNewPlayerPosition(dungeon.playerPosition.up(1))
-      case Down => attemptNewPlayerPosition(dungeon.playerPosition.down(1))
-      case Left => attemptNewPlayerPosition(dungeon.playerPosition.left(1))
-      case Right => attemptNewPlayerPosition(dungeon.playerPosition.right(1))
+      case Up => attemptNewPlayerPosition(dungeon.positionedPlayer._1.up(1))
+      case Down => attemptNewPlayerPosition(dungeon.positionedPlayer._1.down(1))
+      case Left => attemptNewPlayerPosition(dungeon.positionedPlayer._1.left(1))
+      case Right => attemptNewPlayerPosition(dungeon.positionedPlayer._1.right(1))
     }
   }
 
