@@ -35,7 +35,8 @@ object Main {
       messageContainer = messageContainer
     )
 
-    var gameState = GameState.start(1512512)
+    val (initialGameState, newRng) = GameState.start(SimpleRNG(1512512))
+    var gameState = initialGameState
 
     mainViewportDrawingContext.ready.map(_ =>
       gameState.dungeon.positionedPlayer.foreach(positionedPlayer =>
@@ -53,8 +54,17 @@ object Main {
         val transition = gameState.applyCommand(positionedPlayer, playerCommand)
         val postAITransition = transition.newState.dungeon.positionedBeings(Spider)
           .foldLeft((transition.notifications, transition.newState))((last, positionedBeing) => {
-            val transition = last._2.applyCommand(positionedBeing, playerCommand)
-            (last._1 ++ transition.notifications, transition.newState)
+            val ((commandOpt, newBeing), newRng) = positionedBeing.being.withNextCommand(positionedBeing.position, last._2.dungeon)(last._2.rng)
+            val updatedDungeon = last._2.dungeon.withUpdatedBeing(PositionedBeing(positionedBeing.position, newBeing))
+            val newGameState = GameState(updatedDungeon, newRng)
+
+            commandOpt match {
+              case Some(command) =>
+                val transition = newGameState.applyCommand(positionedBeing, command)
+                (last._1 ++ transition.notifications, transition.newState)
+              case None =>
+                (last._1, newGameState)
+            }
           })
           gameState = postAITransition._2
           postAITransition._1.foreach(notification => notificationContext.notify(notification.message, Color.White))

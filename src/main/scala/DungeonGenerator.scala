@@ -5,6 +5,13 @@ case class PositionedBeing(position: Position, being: Being)
 
 case class Dungeon(cells: Map[Position, Cell], area: Area, entrancePosition: Position) extends Navigatable {
 
+  def withUpdatedBeing(positionedBeing: PositionedBeing) =  copy(
+    cells = cells.get(positionedBeing.position) match {
+      case Some(OpenCell(_, structure, items)) => cells.updated(positionedBeing.position, OpenCell(Some(positionedBeing.being), structure, items))
+      case _ => cells
+    }
+  )
+
   def withUpdatedCell(at: Position, cell: Cell) = copy(
     cells = cells.updated(at, cell)
   )
@@ -18,7 +25,7 @@ case class Dungeon(cells: Map[Position, Cell], area: Area, entrancePosition: Pos
 
   def positionedPlayer: Option[PositionedBeing] = cells
     .map {
-      case (position, OpenCell(Some(player@Being(Player, _)), _, _)) => Some(PositionedBeing(position, player))
+      case (position, OpenCell(Some(player@Being(Player, _, _)), _, _)) => Some(PositionedBeing(position, player))
       case _ => None
     }
     .find(_.isDefined)
@@ -27,7 +34,7 @@ case class Dungeon(cells: Map[Position, Cell], area: Area, entrancePosition: Pos
 
   def positionedBeings(target: BeingDescriptor) = cells
     .flatMap {
-      case (position, OpenCell(Some(being@Being(descriptor, _)), _, _)) if descriptor == target => Some(PositionedBeing(position, being))
+      case (position, OpenCell(Some(being@Being(descriptor, _, _)), _, _)) if descriptor == target => Some(PositionedBeing(position, being))
       case _ => None
     }
     .toSet

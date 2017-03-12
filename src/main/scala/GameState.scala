@@ -72,9 +72,9 @@ case class HitTransition(sourceBeing: Being, targetBeing: Being, targetCell: Ope
   val hitVerb = if(sourceBeing.descriptor.isThirdPerson) "hits" else "hit"
   val slayVerb = if(sourceBeing.descriptor.isThirdPerson) "slays" else "slay"
 
-  val damage = 1
+  val (damage, newRng) = sourceBeing.descriptor.damageRange.randomDamage(state.rng)
   val newBeing = targetBeing.hit(damage)
-  val damageNotification = Notification(s"${sourceBeing.descriptor.name} $hitVerb ${newBeing.descriptor.name} for $damage damage!")
+  val damageNotification = Notification(s"${sourceBeing.descriptor.name} $hitVerb ${newBeing.descriptor.name} for ${damage.value} damage!")
 
   def notifications =
     if(newBeing.dead)
@@ -84,13 +84,16 @@ case class HitTransition(sourceBeing: Being, targetBeing: Being, targetCell: Ope
       }
     else List(damageNotification)
 
-  def newState =
-    if(newBeing.dead)
-      state.copy(dungeon = state.dungeon.withUpdatedCell(targetBeingPosition,
+  def newState = {
+    val updatedDungeon = if(newBeing.dead)
+      state.dungeon.withUpdatedCell(targetBeingPosition,
         OpenCell(None, targetCell.structure, newBeing.descriptor.drop.map(targetCell.item + _).getOrElse(targetCell.item))
-      ))
+      )
     else
-      state.copy(dungeon = state.dungeon.withUpdatedCell(targetBeingPosition, OpenCell(Some(newBeing), targetCell.structure, targetCell.item)))
+      state.dungeon.withUpdatedCell(targetBeingPosition, OpenCell(Some(newBeing), targetCell.structure, targetCell.item))
+
+    state.copy(dungeon = updatedDungeon, rng = newRng)
+  }
 
 }
 
@@ -104,13 +107,16 @@ object GameState {
     (dungeonEither, newRng3)
   }
 
-  def start(seed: Long): GameState = {
+  def start: Rand[GameState] = rng => {
 
-    generatedDungeon(SimpleRNG(seed)) match {
+    generatedDungeon(rng) match {
       case (Right(dungeon), newRng) =>
-        GameState(
-          dungeon = dungeon,
-          rng = newRng
+        (
+          GameState(
+            dungeon = dungeon,
+            rng = newRng
+          ),
+          newRng
         )
       case (Left(error), _) => throw new Exception("Dungeon generation failed")
     }
@@ -133,5 +139,7 @@ object Command {
     case 40 => Some(Command.Down)
     case _  => None
   }
+
+  def all: Set[Command] = Set(Up, Down, Right, Left)
 }
 

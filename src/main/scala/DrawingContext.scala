@@ -47,7 +47,7 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D)
           case None =>
         }
         being match {
-          case Some(Being(beingDescriptor, _)) => beingDescriptor match {
+          case Some(Being(beingDescriptor, _, _)) => beingDescriptor match {
             case Player => drawGridImage(imageRepository.nugget, position)
             case Spider => drawGridImage(imageRepository.spider, position)
           }
