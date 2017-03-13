@@ -1,3 +1,4 @@
+import math.SimpleRNG
 import org.scalajs.dom
 import org.scalajs.dom.ext.Color
 import org.scalajs.dom.html
@@ -9,28 +10,31 @@ case class GameDisplayAdapter(
                                minimapCanvas: html.Canvas,
                                messagesList: html.UList,
                                messageContainer: html.Div
-                             )
+                             ) {
+  val mainViewportDrawingContext = new MainViewportDrawingContext(
+    renderingContext = viewportCanvas.getContext("2d").asInstanceOf[dom.CanvasRenderingContext2D]
+  )
+
+  val minimapDrawingContext = new MinimapViewportDrawingContext(
+    renderingContext = minimapCanvas.getContext("2d").asInstanceOf[dom.CanvasRenderingContext2D]
+  )
+
+  val notificationContext = new NotificationContext(
+    messagesList = messagesList,
+    messageContainer = messageContainer
+  )
+}
 
 /**
   * Created by MichelCarroll on 3/12/2017.
   */
 class Game(displayAdapter: GameDisplayAdapter) {
 
-  private val mainViewportDrawingContext = new MainViewportDrawingContext(
-    renderingContext = displayAdapter.viewportCanvas.getContext("2d").asInstanceOf[dom.CanvasRenderingContext2D]
-  )
-  private val minimapDrawingContext = new MinimapViewportDrawingContext(
-    renderingContext = displayAdapter.minimapCanvas.getContext("2d").asInstanceOf[dom.CanvasRenderingContext2D]
-  )
-  private val notificationContext = new NotificationContext(
-    messagesList = displayAdapter.messagesList,
-    messageContainer = displayAdapter.messageContainer
-  )
 
   private val (initialGameState, newRng) = GameState.start(SimpleRNG(1512512))
   private var gameState = initialGameState
 
-  mainViewportDrawingContext.ready.map(_ =>
+  displayAdapter.mainViewportDrawingContext.ready.map(_ =>
     gameState.dungeon.positionedPlayer.foreach(positionedPlayer =>
       redraw(gameState, positionedPlayer)
     )
@@ -59,7 +63,7 @@ class Game(displayAdapter: GameDisplayAdapter) {
           }
         })
       gameState = postAITransition._2
-      postAITransition._1.foreach(notification => notificationContext.notify(notification.message, Color.White))
+      postAITransition._1.foreach(notification => displayAdapter.notificationContext.notify(notification.message, Color.White))
     })
 
     gameState.dungeon.positionedPlayer.foreach(positionedPlayer => {
@@ -68,8 +72,8 @@ class Game(displayAdapter: GameDisplayAdapter) {
   }
 
   private def redraw(gameState: GameState, positionedPlayer: PositionedBeing): Unit = {
-    mainViewportDrawingContext.drawFromPerspective(gameState, positionedPlayer.position)
-    minimapDrawingContext.draw(gameState, positionedPlayer.position)
+    displayAdapter.mainViewportDrawingContext.drawFromPerspective(gameState, positionedPlayer.position)
+    displayAdapter.minimapDrawingContext.draw(gameState, positionedPlayer.position)
   }
 
 }

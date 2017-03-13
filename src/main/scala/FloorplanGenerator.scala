@@ -1,5 +1,8 @@
-import BSPTree._
-import RNG.Rand
+
+import dungeon.generation.bsp.BSPTree
+import dungeon.generation.bsp.BSPTree.{HorizontalBranch, Leaf, VerticalBranch}
+import math._
+import math.RNG.Rand
 
 case class Floorplan(positionedTiles: Map[Position, Tile], size: Size)
 
@@ -32,13 +35,14 @@ object FloorplanGenerator {
           Math.max(1, (area.size.height * (1 - heightRatio)).round.toInt)
         )
 
-        val minX = Math.max(area.center.x - roomSize.width + 1, area.minX)
-        val minY = Math.max(area.center.y - roomSize.height + 1, area.minY)
+        val minX = Math.max(area.minX, area.center.x - roomSize.width + 1)
+        val minY = Math.max(area.minY, area.center.y - roomSize.height + 1)
         val maxX = Math.min(area.center.x, area.maxX - roomSize.width + 1)
         val maxY = Math.min(area.center.y, area.maxY - roomSize.height + 1)
 
         val (roomXPos, newRng3) = RNG.map(RNG.nextPositiveInt(maxX - minX))(_ + minX)(newRng2)
         val (roomYPos, newRng4) = RNG.map(RNG.nextPositiveInt(maxY - minY))(_ + minY)(newRng3)
+
         (Room(Area(Position(roomXPos, roomYPos), roomSize)), newRng4)
       }
 
@@ -68,7 +72,7 @@ object FloorplanGenerator {
 
     }
 
-    val topology = innerTopology(tree, Area(Position(0,0), gridSize).shrink(1)) //shrink to expose a 1 cell thick outline
+    val topology = innerTopology(tree, Area(Position(0,0), gridSize))
 
     val horizontallyRoomAdjacentPositions = topology.rooms
       .flatMap(room => Set(Left, Right).map(room.area.adjacencyLine))

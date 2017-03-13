@@ -1,8 +1,9 @@
 
 
 import DungeonGenerator.GenerationError
-import RNG.Rand
-
+import dungeon.generation.bsp.BSPTree
+import math.{Position, RNG, Size}
+import math.RNG.Rand
 
 case class Notification(message: String)
 

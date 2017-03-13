@@ -1,5 +1,5 @@
-import RNG.Rand
-
+import math.RNG
+import math.RNG.Rand
 
 case class Health(value: Int) extends AnyVal {
   def +(x: Health) = Health(value + x.value)

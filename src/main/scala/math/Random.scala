@@ -1,12 +1,11 @@
+package math
+
 
 import scala.util.Random
-
-
 
 trait RNG {
   def nextInt:(Int, RNG)
 }
-
 
 object RNG {
 

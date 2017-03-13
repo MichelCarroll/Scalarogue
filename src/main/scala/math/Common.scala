@@ -1,5 +1,7 @@
+package math
 
-import Direction._
+
+import math.Direction._
 
 
 case class PrecisePosition(x: Double, y: Double)
@@ -72,10 +74,13 @@ case class Area(position: Position, size: Size) {
 
   def towards(direction: Direction, s: Int) = Area(position.towards(direction, s), size)
 
-  def center = Position(
-    position.x + (size.width / 2.0).round.toInt,
-    position.y + (size.height / 2.0).round.toInt
-  )
+
+  def center =
+    Position(
+      position.x + (size.width / 2.0).floor.toInt,
+      position.y + (size.height / 2.0).floor.toInt
+    )
+
 
   def minX = position.x
   def minY = position.y

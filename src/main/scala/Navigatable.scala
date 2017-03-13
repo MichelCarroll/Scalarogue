@@ -1,3 +1,5 @@
+import math.{Direction, Position}
+
 import scala.annotation.tailrec
 
 trait Navigatable {

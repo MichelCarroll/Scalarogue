@@ -1,4 +1,9 @@
 
+
+package dungeon.generation.bsp
+
+import math._
+
 sealed trait BSPTree {
   import BSPTree._
 

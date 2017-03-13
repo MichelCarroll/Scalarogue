@@ -1,4 +1,4 @@
-
+import math.{Angle, Position, Ray}
 
 trait Sighted {
 
@@ -10,8 +10,8 @@ trait Sighted {
 
     (0 until nRays)
       .map(_ * interval)
-      .map(theta => Vector(lineOfLightRange, Angle(theta)))
-      .map(vector => Ray(Vector(position.x + 0.5, position.y + 0.5), vector))
+      .map(theta => math.Vector(lineOfLightRange, Angle(theta)))
+      .map(vector => Ray(math.Vector(position.x + 0.5, position.y + 0.5), vector))
   }
 
   def positionsWithinRangeTouchedByPerimeterRay(position: Position, dungeon: Dungeon): Set[Position] = {

@@ -1,5 +1,6 @@
 
-import RNG.Rand
+import math.{Area, Position, RNG}
+import math.RNG.Rand
 
 case class PositionedBeing(position: Position, being: Being)
 

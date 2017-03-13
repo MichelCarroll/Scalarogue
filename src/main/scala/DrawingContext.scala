@@ -1,4 +1,6 @@
 
+import dungeon.generation.bsp.BSPTree
+import math._
 import org.scalajs.dom
 import org.scalajs.dom.ext.Color
 
@@ -67,7 +69,7 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D)
     //    gameState.perimeterRays.foreach(ray => drawRay(ray, Color.Green))
     //    gameState.positionsWithinRangeTouchedByARay.foreach(drawDot(_, Color.Red))
 
-    def centeredCanvasVector(vector: Vector) = {
+    def centeredCanvasVector(vector: math.Vector) = {
       val topLeft = canvasVector(vector)
       CanvasPosition(topLeft.x + cellEdge / 2, topLeft.y + cellEdge / 2)
     }
@@ -77,7 +79,7 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D)
       CanvasPosition(topLeft.x + cellEdge / 2, topLeft.y + cellEdge / 2)
     }
 
-    def canvasVector(vector: Vector): CanvasPosition = CanvasPosition(
+    def canvasVector(vector: math.Vector): CanvasPosition = CanvasPosition(
       (vector.x - viewport.topLeft.x) * cellEdge + drawingArea.position.x,
       (vector.y - viewport.topLeft.y) * cellEdge + drawingArea.position.y
     )
@@ -197,14 +199,11 @@ class MinimapViewportDrawingContext(renderingContext: dom.CanvasRenderingContext
 
 
 
-class DebugDrawingContext(renderingContext: dom.CanvasRenderingContext2D, size: Size) {
+class DebugDrawingContext(renderingContext: dom.CanvasRenderingContext2D, mapSize: Size) {
 
-  val cellEdge = 5
-  renderingContext.canvas.width = size.width * cellEdge
-  renderingContext.canvas.height = size.height * cellEdge
 
-  def drawTree(tree: BSPTree, size: Size, rng: RNG): RNG = {
-    val positionedBSPLeaf = tree.positionedLeaves(size)
+  def drawTree(tree: BSPTree, rng: RNG): RNG = {
+    val positionedBSPLeaf = tree.positionedLeaves(mapSize)
     val (randomColors, newRNG) = RNG.sequence(List.fill(positionedBSPLeaf.size)(randomColor))(rng)
     positionedBSPLeaf
       .zip(randomColors)
@@ -214,14 +213,16 @@ class DebugDrawingContext(renderingContext: dom.CanvasRenderingContext2D, size: 
     newRNG
   }
 
-  def drawFloorplanTopology(dungeonTopology: FloorplanGenerator.Topology) = {
-    dungeonTopology.rooms.foreach(room => drawArea(room.area, Color.Black))
-
+  def drawTopologyCorridors(dungeonTopology: FloorplanGenerator.Topology) = {
     import FloorplanGenerator._
     dungeonTopology.corridors.foreach {
       case HorizontalCorridor(area) => drawArea(area, Color.Cyan)
       case VerticalCorridor(area)   => drawArea(area, Color.Yellow)
     }
+  }
+
+  def drawTopologyRooms(dungeonTopology: FloorplanGenerator.Topology) = {
+    dungeonTopology.rooms.foreach(room => drawArea(room.area, Color.Black))
   }
 
   def drawFloorplan(floorplan: Floorplan) = {
@@ -244,6 +245,7 @@ class DebugDrawingContext(renderingContext: dom.CanvasRenderingContext2D, size: 
   private def drawArea(area: Area, color: Color) = drawRect(area.position, area.size, color)
 
   private def drawRect(position: Position, size: Size, color: Color) = {
+    val cellEdge = renderingContext.canvas.width / mapSize.width.toDouble
     renderingContext.fillStyle = color.toString()
     renderingContext.fillRect(position.x * cellEdge, position.y * cellEdge, size.width * cellEdge, size.height * cellEdge)
   }

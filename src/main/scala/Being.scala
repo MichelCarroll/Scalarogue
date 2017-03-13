@@ -1,5 +1,6 @@
 
-import RNG.Rand
+import math.{Area, Direction, Position, RNG}
+import math.RNG.Rand
 
 trait Intelligence {
   def nextCommand(positionedBeing: PositionedBeing, dungeon: Dungeon): Rand[(Option[Command], Intelligence)]
