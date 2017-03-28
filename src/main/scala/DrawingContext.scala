@@ -203,7 +203,7 @@ class DebugDrawingContext(renderingContext: dom.CanvasRenderingContext2D, mapSiz
 
 
   def drawTree(tree: BSPTree, rng: RNG): RNG = {
-    val positionedBSPLeaf = tree.positionedLeaves(mapSize)
+    val positionedBSPLeaf = tree.positionedLeaves
     val (randomColors, newRNG) = RNG.sequence(List.fill(positionedBSPLeaf.size)(randomColor))(rng)
     positionedBSPLeaf
       .zip(randomColors)

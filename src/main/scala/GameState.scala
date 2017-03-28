@@ -102,7 +102,7 @@ object GameState {
 
   def generatedDungeon: Rand[Either[GenerationError, Dungeon]] = rng => {
     val gridSize = Size(50, 50)
-    val (randomTree, newRng) = BSPTree.buildRandomTree(minLeafSurface = 0.02, maxLeafSurface = 0.15, skewdnessCutoff = 0.8)(rng)
+    val (randomTree, newRng) = BSPTree.buildRandomTree(size = gridSize)(rng)
     val ((_, floorplan), newRng2) = FloorplanGenerator.generate(randomTree, gridSize)(newRng)
     val (dungeonEither, newRng3) = DungeonGenerator.generate(floorplan)(newRng2)
     (dungeonEither, newRng3)

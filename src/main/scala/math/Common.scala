@@ -57,18 +57,7 @@ case class Ray(origin: Vector, vector: Vector)
 sealed trait Shape
 case object SkewedVertically extends Shape
 case object SkewedHorizontally extends Shape
-case object Normal extends Shape
-
-case class RatioSize(width: Double, height: Double) {
-
-  def surfaceArea = width * height
-
-  def shape(skewdnessCutoff: Double): Shape = width / (width + height) match {
-    case s if s > skewdnessCutoff => SkewedHorizontally
-    case s if s < (1 - skewdnessCutoff) => SkewedVertically
-    case _ => Normal
-  }
-}
+case object Square extends Shape
 
 case class Area(position: Position, size: Size) {
 
@@ -137,6 +126,8 @@ object Area {
 
 case class Size(width: Int, height: Int) {
 
+  def surface = width * height
+
   def partitionHorizontally(ratio: Double) = (
     Size((width * ratio).round.toInt, height),
     Size((width * (1 - ratio)).round.toInt, height)
@@ -148,4 +139,10 @@ case class Size(width: Int, height: Int) {
     )
 
   def empty = width <= 0 || height <= 0
+
+  def shape: Shape = (width, height) match {
+    case (w, h) if w == h => Square
+    case (w, h) if w < h  => SkewedVertically
+    case (w, h) if w > h  => SkewedHorizontally
+  }
 }

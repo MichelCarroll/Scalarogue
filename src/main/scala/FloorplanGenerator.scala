@@ -20,7 +20,7 @@ object FloorplanGenerator {
     def +(corridor: Corridor) = this.copy(corridors = corridors + corridor)
   }
 
-  def generate(tree: BSPTree, gridSize: Size): Rand[(Topology, Floorplan)] = rng => {
+  def generate(tree: BSPTree, gridSize: Size, roomPadding: Int = 1): Rand[(Topology, Floorplan)] = rng => {
     import Direction._
     var varRng = rng
 
@@ -31,14 +31,14 @@ object FloorplanGenerator {
         val (heightRatio, newRng2) = RNG.nextPositiveGaussianRatio(5)(newRng1)
 
         val roomSize = Size(
-          Math.max(1, (area.size.width * (1 - widthRatio)).round.toInt),
-          Math.max(1, (area.size.height * (1 - heightRatio)).round.toInt)
+          Math.max(1, ((area.size.width - roomPadding * 2) * (1 - widthRatio)).round.toInt),
+          Math.max(1, ((area.size.height - roomPadding * 2) * (1 - heightRatio)).round.toInt)
         )
 
-        val minX = Math.max(area.minX, area.center.x - roomSize.width + 1)
-        val minY = Math.max(area.minY, area.center.y - roomSize.height + 1)
-        val maxX = Math.min(area.center.x, area.maxX - roomSize.width + 1)
-        val maxY = Math.min(area.center.y, area.maxY - roomSize.height + 1)
+        val minX = Math.max(area.minX + roomPadding, area.center.x - roomSize.width + 1)
+        val minY = Math.max(area.minY + roomPadding, area.center.y - roomSize.height + 1)
+        val maxX = Math.min(area.center.x, area.maxX - roomSize.width + 1 - roomPadding)
+        val maxY = Math.min(area.center.y, area.maxY - roomSize.height + 1 - roomPadding)
 
         val (roomXPos, newRng3) = RNG.map(RNG.nextPositiveInt(maxX - minX))(_ + minX)(newRng2)
         val (roomYPos, newRng4) = RNG.map(RNG.nextPositiveInt(maxY - minY))(_ + minY)(newRng3)
@@ -48,23 +48,21 @@ object FloorplanGenerator {
 
       tree match {
 
-        case HorizontalBranch(ratio, left, right) =>
-          val (leftSize, rightSize) = area.size.partitionHorizontally(ratio)
-          val leftArea = Area(area.position, leftSize)
-          val rightArea = Area(area.position.right(leftSize.width), rightSize)
+        case HorizontalBranch(left, right) =>
+          val leftArea = Area(area.position, left.size)
+          val rightArea = Area(area.position.right(left.size.width), right.size)
           innerTopology(left, leftArea) +
             innerTopology(right, rightArea) +
             HorizontalCorridor(Area(leftArea.center, rightArea.center))
 
-        case VerticalBranch(ratio, top, bottom) =>
-          val (topSize, bottomSize) = area.size.partitionVertically(ratio)
-          val topArea = Area(area.position, topSize)
-          val bottomArea = Area(area.position.down(topSize.height), bottomSize)
+        case VerticalBranch(top, bottom) =>
+          val topArea = Area(area.position, top.size)
+          val bottomArea = Area(area.position.down(top.size.height), bottom.size)
           innerTopology(top, topArea) +
             innerTopology(bottom, bottomArea) +
             VerticalCorridor(Area(topArea.center, bottomArea.center))
 
-        case Leaf =>
+        case Leaf(size) =>
           val (newRoom, newRng) = roomTouchingCenterOfSubspace(area)(varRng)
           varRng = newRng
           Topology(rooms = Set(newRoom), corridors = Set())

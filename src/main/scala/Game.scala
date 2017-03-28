@@ -28,10 +28,10 @@ case class GameDisplayAdapter(
 /**
   * Created by MichelCarroll on 3/12/2017.
   */
-class Game(displayAdapter: GameDisplayAdapter) {
+class Game(seed: Int, displayAdapter: GameDisplayAdapter) {
 
 
-  private val (initialGameState, newRng) = GameState.start(SimpleRNG(1512512))
+  private val (initialGameState, newRng) = GameState.start(SimpleRNG(seed))
   private var gameState = initialGameState
 
   displayAdapter.mainViewportDrawingContext.ready.map(_ =>

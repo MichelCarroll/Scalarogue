@@ -11,9 +11,12 @@ import scala.scalajs.js.annotation.JSExport
 object Main {
 
   @JSExport
-  def main(viewportCanvas: html.Canvas, minimapCanvas: html.Canvas, messagesList: html.UList, messageContainer: html.Div): Unit = {
+  def main(seed: Double, viewportCanvas: html.Canvas, minimapCanvas: html.Canvas, messagesList: html.UList, messageContainer: html.Div): Unit = {
 
-    val game = new Game(GameDisplayAdapter(viewportCanvas, minimapCanvas, messagesList, messageContainer))
+    val game = new Game(
+      seed = seed.toInt,
+      displayAdapter = GameDisplayAdapter(viewportCanvas, minimapCanvas, messagesList, messageContainer)
+    )
 
     dom.document.onkeydown = (e: dom.KeyboardEvent) => {
       Command.fromKeyCode(e.keyCode).foreach(game.executeTurn)
@@ -30,7 +33,7 @@ object Main {
 
       val rng = SimpleRNG(seed.toInt)
       val gridSize = Size(50, 50)
-      val (randomTree, newRng) = BSPTree.buildRandomTree(minLeafSurface = 0.02, maxLeafSurface = 0.15, skewdnessCutoff = 0.8)(rng)
+      val (randomTree, newRng) = BSPTree.buildRandomTree(size = gridSize)(rng)
       val ((floorplanTopology, floorplan), newRng2) = FloorplanGenerator.generate(randomTree, gridSize)(newRng)
       val (dungeonEither, newRng3) = DungeonGenerator.generate(floorplan)(newRng2)
       (dungeonEither, newRng3)
@@ -42,6 +45,7 @@ object Main {
 
       debugDrawingContext.drawTree(randomTree, newRng3)
       debugDrawingContext.drawTopologyRooms(floorplanTopology)
+      debugDrawingContext.drawFloorplan(floorplan)
     }
 
     (1 to 10).foreach(_ => createNewDungeon())

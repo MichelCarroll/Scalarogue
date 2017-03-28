@@ -7,23 +7,23 @@ import math._
 sealed trait BSPTree {
   import BSPTree._
 
-  def positionedLeaves(gridSize: Size): Set[PositionedLeaf] = {
+  def size: Size
 
-    def inner(tree: BSPTree, position: Position, size: Size): Set[PositionedLeaf] = tree match {
-      case VerticalBranch(ratio, top, bottom) =>
-        val (topSize, bottomSize) = size.partitionVertically(ratio)
-        inner(top, position, topSize) ++
-        inner(bottom, position.down(topSize.height), bottomSize)
+  def positionedLeaves: Set[PositionedLeaf] = {
 
-      case HorizontalBranch(ratio, left, right) =>
-        val (leftSize, rightSize) = size.partitionHorizontally(ratio)
-        inner(left, position, leftSize) ++
-        inner(right, position.right(leftSize.width), rightSize)
+    def inner(tree: BSPTree, position: Position): Set[PositionedLeaf] = tree match {
+      case VerticalBranch(top, bottom) =>
+        inner(top, position) ++
+        inner(bottom, position.down(top.size.height))
 
-      case Leaf => Set(PositionedLeaf(position, size))
+      case HorizontalBranch(left, right) =>
+        inner(left, position) ++
+        inner(right, position.right(left.size.width))
+
+      case Leaf(size) => Set(PositionedLeaf(position, size))
     }
 
-    inner(this, Position(0,0), gridSize)
+    inner(this, Position(0,0))
   }
 
 }
@@ -31,35 +31,40 @@ sealed trait BSPTree {
 
 
 object BSPTree {
-  case class VerticalBranch(ratio: Double, top: BSPTree, bottom: BSPTree) extends BSPTree
-  case class HorizontalBranch(ratio: Double, left: BSPTree, right: BSPTree) extends BSPTree
-  case object Leaf extends BSPTree
+  case class VerticalBranch(top: BSPTree, bottom: BSPTree) extends BSPTree {
+    def size = Size(top.size.width, top.size.height + bottom.size.height)
+  }
+  case class HorizontalBranch(left: BSPTree, right: BSPTree) extends BSPTree {
+    def size = Size(left.size.width + right.size.width, left.size.height)
+  }
+  case class Leaf(size: Size) extends BSPTree
 
   case class PositionedLeaf(position: Position, size: Size)
 
-  def buildRandomTree(maxLeafSurface: Double, minLeafSurface: Double, skewdnessCutoff: Double)(rng: RNG): (BSPTree, RNG) = {
+  def buildRandomTree(size: Size, minEdgeLength: Int = 5, minSurface: Int = 150)(rng: RNG): (BSPTree, RNG) = {
     var varRng: RNG = rng
 
-
-    def inner(size: RatioSize, verticalSplit: Boolean): BSPTree = {
+    def inner(size: Size, verticalSplit: Boolean): BSPTree = {
 
       def verticalBranch = {
-        val (ratioOfSplit, newRng) = RNG.nextGaussianRatio(4)(varRng)
+        val leeway = size.height - minEdgeLength * 2
+        val (topHeightOffset, newRng) = RNG.nextPositiveInt(leeway)(varRng)
         varRng = newRng
+        val topHeight = minEdgeLength + topHeightOffset
         VerticalBranch(
-          ratioOfSplit,
-          inner(RatioSize(size.width, size.height * ratioOfSplit), verticalSplit = false),
-          inner(RatioSize(size.width, size.height * (1 - ratioOfSplit)), verticalSplit = false)
+          inner(Size(size.width, topHeight), verticalSplit = false),
+          inner(Size(size.width, size.height - topHeight), verticalSplit = false)
         )
       }
 
       def horizontalBranch = {
-        val (ratioOfSplit, newRng) = RNG.nextGaussianRatio(4)(varRng)
+        val leeway = size.width - minEdgeLength * 2
+        val (topWidthOffset, newRng) = RNG.nextPositiveInt(leeway)(varRng)
         varRng = newRng
+        val leftWidth = minEdgeLength + topWidthOffset
         HorizontalBranch(
-          ratioOfSplit,
-          inner(RatioSize(size.width * ratioOfSplit, size.height), verticalSplit = true),
-          inner(RatioSize(size.width * (1 - ratioOfSplit), size.height), verticalSplit = true)
+          inner(Size(leftWidth, size.height), verticalSplit = true),
+          inner(Size(size.width  - leftWidth, size.height), verticalSplit = true)
         )
       }
 
@@ -73,26 +78,20 @@ object BSPTree {
           horizontalBranch
       }
 
-      size.shape(skewdnessCutoff) match {
-        case Normal if size.surfaceArea > maxLeafSurface => randomOrientationBranch
-        case Normal if size.surfaceArea < minLeafSurface => Leaf
-        case Normal =>
-          val (stopSplitting, newRng) = RNG.nextBoolean(varRng)
-          varRng = newRng
-
-          if(stopSplitting) Leaf
-          else randomOrientationBranch
-
-        case SkewedHorizontally => horizontalBranch
-        case SkewedVertically => verticalBranch
-      }
+      if(size.surface > minSurface)
+        size.shape match {
+          case Square if size.width > minEdgeLength * 2 => randomOrientationBranch
+          case SkewedHorizontally if size.width > minEdgeLength * 2  => horizontalBranch
+          case SkewedVertically if size.height > minEdgeLength * 2 => verticalBranch
+        }
+      else Leaf(size)
     }
 
 
     val (firstSplitIsVertical, newRng) = RNG.nextBoolean(varRng)
     varRng = newRng
 
-    val tree = inner(RatioSize(1.0, 1.0), firstSplitIsVertical)
+    val tree = inner(size, firstSplitIsVertical)
     (tree, varRng)
   }
 }
