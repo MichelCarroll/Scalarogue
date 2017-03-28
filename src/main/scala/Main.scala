@@ -22,21 +22,29 @@ object Main {
   }
 
   @JSExport
-  def dungeonGeneration(viewportCanvas: html.Canvas): Unit = {
+  def dungeonGeneration(seedGenerator: scalajs.js.Function0[Double], dungeonViewportGenerator: scalajs.js.Function0[html.Canvas]): Unit = {
 
-    val rng = SimpleRNG(192394)
-    val gridSize = Size(25, 25)
-    val (randomTree, newRng) = BSPTree.buildRandomTree(minLeafSurface = 0.02, maxLeafSurface = 0.15, skewdnessCutoff = 0.8)(rng)
-    val ((floorplanTopology, floorplan), newRng2) = FloorplanGenerator.generate(randomTree, gridSize)(newRng)
-    val (dungeonEither, newRng3) = DungeonGenerator.generate(floorplan)(newRng2)
-    (dungeonEither, newRng3)
+    def createNewDungeon(): Unit = {
+      val seed = seedGenerator()
+      val dungeonViewport = dungeonViewportGenerator()
 
-    val debugDrawingContext = new DebugDrawingContext(
-      renderingContext = viewportCanvas.getContext("2d").asInstanceOf[CanvasRenderingContext2D],
-      mapSize = gridSize
-    )
+      val rng = SimpleRNG(seed.toInt)
+      val gridSize = Size(50, 50)
+      val (randomTree, newRng) = BSPTree.buildRandomTree(minLeafSurface = 0.02, maxLeafSurface = 0.15, skewdnessCutoff = 0.8)(rng)
+      val ((floorplanTopology, floorplan), newRng2) = FloorplanGenerator.generate(randomTree, gridSize)(newRng)
+      val (dungeonEither, newRng3) = DungeonGenerator.generate(floorplan)(newRng2)
+      (dungeonEither, newRng3)
 
-    debugDrawingContext.drawTree(randomTree, newRng3)
-//    debugDrawingContext.drawTopologyRooms(floorplanTopology)
+      val debugDrawingContext = new DebugDrawingContext(
+        renderingContext = dungeonViewport.getContext("2d").asInstanceOf[CanvasRenderingContext2D],
+        mapSize = gridSize
+      )
+
+      debugDrawingContext.drawTree(randomTree, newRng3)
+      debugDrawingContext.drawTopologyRooms(floorplanTopology)
+    }
+
+    (1 to 10).foreach(_ => createNewDungeon())
+
   }
 }

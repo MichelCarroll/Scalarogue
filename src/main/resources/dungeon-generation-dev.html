@@ -6,15 +6,27 @@
 </head>
 <body style="margin: 0px">
 
-<div>
-    <canvas style="display: block; float: left" width="600" height="600" id="viewport"></canvas>
-</div>
+<div id="dungeon-container"></div>
 
 <script type="text/javascript" src="../dungeongenerator-fastopt.js"></script>
-<script>
-    Main().dungeonGeneration(
-        document.getElementById('viewport')
-    );
+<script language="javascript">
+    var originalSeed = +(new Date())
+
+    function dungeonViewportGenerator() {
+        var canvas = document.createElement("canvas");
+        canvas.style = "display: block; float: left; padding: 20px";
+        canvas.width = 200;
+        canvas.height = 200;
+        document.getElementById('dungeon-container').appendChild(canvas);
+        return canvas;
+    }
+
+    function seedGenerator() {
+        originalSeed++;
+        return originalSeed;
+    }
+
+    Main().dungeonGeneration(seedGenerator, dungeonViewportGenerator);
 </script>
 </body>
 </html>
