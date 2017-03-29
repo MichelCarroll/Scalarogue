@@ -4,6 +4,7 @@ import dungeon._
 import dungeon.generation.floorplan.Floorplan
 import game._
 import game.being.{PlayerGenerator, SpiderGenerator}
+import random.RNG
 import random.RNG._
 import math._
 
@@ -13,52 +14,53 @@ object DungeonGenerator {
   trait GenerationError
   case object NeedAtLeastTwoRoomTiles extends GenerationError
 
-  def generate(floorplan: Floorplan): Rand[Either[GenerationError, Dungeon]] = rng => {
-    var varRng = rng
+  def generate(floorplan: Floorplan): Rand[Either[GenerationError, Dungeon]] = {
     val roomTiles = floorplan.positionedTiles.filter(_._2.isRoomTile).toSet
 
     if(roomTiles.size < 2)
-      (Left(NeedAtLeastTwoRoomTiles), rng)
+      unit(Left(NeedAtLeastTwoRoomTiles))
 
     else {
 
-      def randomRoomCell: Cell = {
-        val (p, newRng) = nextRatio(varRng)
-        varRng = newRng
-
-        p match {
+      def randomRoomCell: Rand[Cell] =
+        nextRatio.map {
           case x if x < 0.0005 => OpenCell(structure = Some(Upstairs))
           case x if x < 0.001 =>  OpenCell(structure = Some(Downstairs))
           case x if x < 0.015 =>  OpenCell(being = Some(SpiderGenerator.generate))
           case _ => OpenCell()
         }
-      }
 
-      val entranceAndExit: (Position, Position) = {
-        val (positionedTile, newRng) = nextsFromSet(roomTiles, 2)(rng)
-        varRng = newRng
-        (positionedTile.head._1, positionedTile.tail.head._1)
-      }
-      val entrancePosition = entranceAndExit._1
-      val exitPosition = entranceAndExit._2
+      val randomEntranceAndExit: Rand[(Position, Position)] =
+        nextsFromSet(roomTiles, 2)
+          .map(positionedTile =>
+            (positionedTile.head._1, positionedTile.tail.head._1)
+          )
 
       val wallCells: Map[Position, Cell] =
         Area(Position(0,0), floorplan.size).positions.map(_ -> ClosedCell).toMap
 
-      val floorplanCells = floorplan.positionedTiles.mapValues {
-        case DoorTile => OpenCell(structure = Some(ClosedDoor))
-        case RoomTile => randomRoomCell
-        case tile => OpenCell()
+      val randomFloorplanCells: Rand[Map[Position, Cell]] = {
+        val listOfRandomCells = floorplan.positionedTiles.mapValues {
+          case DoorTile => unit(OpenCell(structure = Some(ClosedDoor)))
+          case RoomTile => randomRoomCell
+          case tile => unit(OpenCell())
+        }
+        RNG.sequence(listOfRandomCells.toList
+          .map(x => unit(x._1).combine(x._2))
+        ).map(_.toMap)
       }
 
-      val dungeon = Dungeon(
-        cells = wallCells ++ floorplanCells
-          + (entrancePosition -> OpenCell(being = Some(PlayerGenerator.generate), structure = Some(Upstairs)))
-          + (exitPosition -> OpenCell(structure = Some(Downstairs))),
-        area = Area(Position(0,0), floorplan.size),
-        entrancePosition = entrancePosition
-      )
-      (Right(dungeon), rng)
+      randomFloorplanCells.combine(randomEntranceAndExit).map {
+        case (floorplanCells, (entrancePosition, exitPosition)) =>
+          Right(Dungeon(
+            cells = wallCells ++ floorplanCells
+              + (entrancePosition -> OpenCell(being = Some(PlayerGenerator.generate), structure = Some(Upstairs)))
+              + (exitPosition -> OpenCell(structure = Some(Downstairs))),
+            area = Area(Position(0,0), floorplan.size),
+            entrancePosition = entrancePosition
+          ))
+      }
+
     }
   }
 

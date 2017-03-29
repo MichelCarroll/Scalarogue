@@ -37,24 +37,30 @@ object Main {
 
       val rng = SimpleRNG(seed.toInt)
       val gridSize = Size(50, 50)
-      val (randomTree, newRng) = BSPTree.generate(
-        RandomBSPTreeParameters(
-          size = gridSize,
-          minLeafEdgeLength = 3,
-          minLeafSurfaceRelativeToTotal = Ratio(0.08)
-        ))(rng)
-      val (floorplan, newRng2) = Floorplan.generate(randomTree, gridSize)(newRng)
-      val (dungeonEither, newRng3) = DungeonGenerator.generate(floorplan)(newRng2)
-      (dungeonEither, newRng3)
 
       val debugDrawingContext = new DebugDrawingContext(
         renderingContext = dungeonViewport.getContext("2d").asInstanceOf[CanvasRenderingContext2D],
         mapSize = gridSize
       )
 
-      debugDrawingContext.drawTree(randomTree)(newRng3)
-      debugDrawingContext.drawTopologyRooms(floorplan.topology)
-      debugDrawingContext.drawFloorplan(floorplan)
+      val generator = for {
+        bspTree <- BSPTree.generate(
+          RandomBSPTreeParameters(
+            size = gridSize,
+            minLeafEdgeLength = 3,
+            minLeafSurfaceRelativeToTotal = Ratio(0.08)
+          ))
+        floorplan <- Floorplan.generate(bspTree, gridSize)
+        dungeonEither <- DungeonGenerator.generate(floorplan)
+      } yield (bspTree, floorplan, dungeonEither)
+
+      generator(rng)._1 match {
+        case (bspTree, floorplan, dungeonEither) =>
+          debugDrawingContext.drawTree(bspTree)(rng)
+          debugDrawingContext.drawTopologyCorridors(floorplan.topology)
+          debugDrawingContext.drawFloorplan(floorplan)
+      }
+
     }
 
     (1 to 10).foreach(_ => createNewDungeon())

@@ -91,30 +91,4 @@ object BSPTree {
     inner(parameters.size)
   }
 
-  trait Tree
-  case class Branch(left: Tree, right: Tree) extends Tree
-  case object Leaf extends Tree
-
-  def generate: Rand[Tree] = rng => {
-
-    def inner: Rand[Tree] = rng => {
-      val (shouldBranchOut, newRng) = RNG.nextBoolean(rng)
-
-      if(shouldBranchOut) {
-        val (left, newRng1) = inner(newRng)
-        val (right, newRng2) = inner(newRng1)
-        (Branch(left, right), newRng2)
-      }
-      else
-        (Leaf, newRng)
-    }
-
-    inner(rng)
-  }
-
-  println(generate(SimpleRNG(272)))
-
 }
-
-
-//Branch(Leaf,Branch(Branch(Leaf,Leaf),Leaf))
