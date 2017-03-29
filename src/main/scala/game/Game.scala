@@ -1,35 +1,18 @@
-import math.SimpleRNG
+package game
+
+import ui.GameDisplayAdapter
+import game.being.{PositionedBeing, Spider}
+import random.SimpleRNG
 import org.scalajs.dom
 import org.scalajs.dom.ext.Color
-import org.scalajs.dom.html
 
-import scala.concurrent.ExecutionContext.Implicits.global
-
-case class GameDisplayAdapter(
-                               viewportCanvas: html.Canvas,
-                               minimapCanvas: html.Canvas,
-                               messagesList: html.UList,
-                               messageContainer: html.Div
-                             ) {
-  val mainViewportDrawingContext = new MainViewportDrawingContext(
-    renderingContext = viewportCanvas.getContext("2d").asInstanceOf[dom.CanvasRenderingContext2D]
-  )
-
-  val minimapDrawingContext = new MinimapViewportDrawingContext(
-    renderingContext = minimapCanvas.getContext("2d").asInstanceOf[dom.CanvasRenderingContext2D]
-  )
-
-  val notificationContext = new NotificationContext(
-    messagesList = messagesList,
-    messageContainer = messageContainer
-  )
-}
 
 /**
   * Created by MichelCarroll on 3/12/2017.
   */
 class Game(seed: Int, displayAdapter: GameDisplayAdapter) {
 
+  import scala.concurrent.ExecutionContext.Implicits.global
 
   private val (initialGameState, newRng) = GameState.start(SimpleRNG(seed))
   private var gameState = initialGameState

@@ -1,8 +1,12 @@
-
-import dungeon.generation.bsp.BSPTree
-import math.{SimpleRNG, Size}
+import dungeon.generation.floorplan.{BSPTree, Floorplan, RandomBSPTreeParameters}
+import ui.{DebugDrawingContext, GameDisplayAdapter}
+import dungeon.generation.DungeonGenerator
+import game.{Command, Game}
+import math.Size
 import org.scalajs.dom
 import org.scalajs.dom.{CanvasRenderingContext2D, html}
+import primitives.Ratio
+import random.SimpleRNG
 
 import scala.scalajs.js.annotation.JSExport
 
@@ -33,8 +37,13 @@ object Main {
 
       val rng = SimpleRNG(seed.toInt)
       val gridSize = Size(50, 50)
-      val (randomTree, newRng) = BSPTree.buildRandomTree(size = gridSize)(rng)
-      val ((floorplanTopology, floorplan), newRng2) = FloorplanGenerator.generate(randomTree, gridSize)(newRng)
+      val (randomTree, newRng) = BSPTree.generate(
+        RandomBSPTreeParameters(
+          size = gridSize,
+          minLeafEdgeLength = 3,
+          minLeafSurfaceRelativeToTotal = Ratio(0.08)
+        ))(rng)
+      val (floorplan, newRng2) = Floorplan.generate(randomTree, gridSize)(newRng)
       val (dungeonEither, newRng3) = DungeonGenerator.generate(floorplan)(newRng2)
       (dungeonEither, newRng3)
 
@@ -44,7 +53,7 @@ object Main {
       )
 
       debugDrawingContext.drawTree(randomTree, newRng3)
-      debugDrawingContext.drawTopologyRooms(floorplanTopology)
+      debugDrawingContext.drawTopologyRooms(floorplan.topology)
       debugDrawingContext.drawFloorplan(floorplan)
     }
 

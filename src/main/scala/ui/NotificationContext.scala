@@ -1,3 +1,5 @@
+package ui
+
 import org.scalajs.dom
 import org.scalajs.dom.ext.Color
 import org.scalajs.dom.html

@@ -2,6 +2,7 @@ package math
 
 
 import math.Direction._
+import primitives.NonNeg._
 
 
 case class PrecisePosition(x: Double, y: Double)
@@ -63,13 +64,11 @@ case class Area(position: Position, size: Size) {
 
   def towards(direction: Direction, s: Int) = Area(position.towards(direction, s), size)
 
-
   def center =
     Position(
       position.x + (size.width / 2.0).floor.toInt,
       position.y + (size.height / 2.0).floor.toInt
     )
-
 
   def minX = position.x
   def minY = position.y
@@ -127,16 +126,6 @@ object Area {
 case class Size(width: Int, height: Int) {
 
   def surface = width * height
-
-  def partitionHorizontally(ratio: Double) = (
-    Size((width * ratio).round.toInt, height),
-    Size((width * (1 - ratio)).round.toInt, height)
-    )
-
-  def partitionVertically(ratio: Double) = (
-    Size(width, (height * ratio).round.toInt),
-    Size(width, (height * (1 - ratio)).round.toInt)
-    )
 
   def empty = width <= 0 || height <= 0
 

@@ -1,5 +1,4 @@
-package math
-
+package random
 
 import scala.util.Random
 

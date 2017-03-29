@@ -1,3 +1,7 @@
+package dungeon.pathfinding
+
+import dungeon._
+import game._
 import math.{Direction, Position}
 
 import scala.annotation.tailrec

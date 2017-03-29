@@ -1,12 +1,16 @@
+package ui
 
-import dungeon.generation.bsp.BSPTree
-import math._
+import dungeon._
+import game.being._
+import game._
 import org.scalajs.dom
+import math._
 import org.scalajs.dom.ext.Color
 
 
-case class CanvasPosition(x: Double, y: Double)
-
+/**
+  * Created by MichelCarroll on 3/28/2017.
+  */
 class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D) {
 
   val imageRepository = new ImageRepository(renderingContext)
@@ -144,109 +148,4 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D)
   }
 
 
-}
-
-
-class MinimapViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D) {
-
-  val drawingArea = Area(
-    Position(0, 0),
-    Size(renderingContext.canvas.width, renderingContext.canvas.height)
-  )
-
-  def draw(gameState: GameState, cameraPosition: Position) = {
-
-    val viewport = Player.viewport(cameraPosition)
-
-    renderingContext.fillStyle = Color.Black.toString
-    renderingContext.fillRect(
-      drawingArea.position.x,
-      drawingArea.position.y,
-      drawingArea.size.width,
-      drawingArea.size.height
-    )
-
-    val cellEdge = drawingArea.size.width / gameState.dungeon.area.size.width
-
-    gameState.dungeon.cells.foreach {
-      case (position, OpenCell(_,_,_)) => drawCell(position, Color.Green)
-      case _ =>
-    }
-
-    def drawCell(position: Position, color: Color) = {
-      renderingContext.fillStyle = color.toString()
-      renderingContext.fillRect(
-        drawingArea.position.x + position.x * cellEdge,
-        drawingArea.position.y + position.y * cellEdge,
-        cellEdge,
-        cellEdge
-      )
-    }
-
-    renderingContext.strokeStyle = Color.White.toString
-    renderingContext.lineWidth = 2
-    renderingContext.strokeRect(
-      drawingArea.position.x + viewport.position.x * cellEdge,
-      drawingArea.position.y + viewport.position.y * cellEdge,
-      viewport.size.width * cellEdge,
-      viewport.size.height * cellEdge
-    )
-
-  }
-
-
-}
-
-
-
-class DebugDrawingContext(renderingContext: dom.CanvasRenderingContext2D, mapSize: Size) {
-
-
-  def drawTree(tree: BSPTree, rng: RNG): RNG = {
-    val positionedBSPLeaf = tree.positionedLeaves
-    val (randomColors, newRNG) = RNG.sequence(List.fill(positionedBSPLeaf.size)(randomColor))(rng)
-    positionedBSPLeaf
-      .zip(randomColors)
-      .foreach {
-        case (BSPTree.PositionedLeaf(position, leafSize), color) => drawRect(position, leafSize, color)
-      }
-    newRNG
-  }
-
-  def drawTopologyCorridors(dungeonTopology: FloorplanGenerator.Topology) = {
-    import FloorplanGenerator._
-    dungeonTopology.corridors.foreach {
-      case HorizontalCorridor(area) => drawArea(area, Color.Cyan)
-      case VerticalCorridor(area)   => drawArea(area, Color.Yellow)
-    }
-  }
-
-  def drawTopologyRooms(dungeonTopology: FloorplanGenerator.Topology) = {
-    dungeonTopology.rooms.foreach(room => drawArea(room.area, Color.Black))
-  }
-
-  def drawFloorplan(floorplan: Floorplan) = {
-    floorplan.positionedTiles.foreach {
-      case (position, RoomTile) => drawCell(position, Color.Green)
-      case (position, DoorTile) => drawCell(position, Color.Black)
-      case (position, CorridorTile) => drawCell(position, Color.Red)
-    }
-  }
-
-  private def randomColor: RNG.Rand[Color] = rng => {
-    val (r, random2) = RNG.nextPositiveInt(255)(rng)
-    val (g, random3) = RNG.nextPositiveInt(255)(random2)
-    val (b, random4) = RNG.nextPositiveInt(255)(random3)
-    (Color(r,g,b), random4)
-  }
-
-
-  private def drawCell(position: Position, color: Color) = drawRect(position, Size(1, 1), color)
-  private def drawArea(area: Area, color: Color) = drawRect(area.position, area.size, color)
-
-  private def drawRect(position: Position, size: Size, color: Color) = {
-    val cellEdge = renderingContext.canvas.width / mapSize.width.toDouble
-    renderingContext.fillStyle = color.toString()
-    renderingContext.fillRect(position.x * cellEdge, position.y * cellEdge, size.width * cellEdge, size.height * cellEdge)
-  }
 }

@@ -1,4 +1,4 @@
-
+package dungeon.generation
 
 sealed trait Tile {
 

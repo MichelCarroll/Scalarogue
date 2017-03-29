@@ -1,43 +1,17 @@
+package game
 
 
-import DungeonGenerator.GenerationError
-import dungeon.generation.bsp.BSPTree
-import math.{Position, RNG, Size}
-import math.RNG.Rand
+import dungeon.{Cell, Dungeon, OpenCell}
+import dungeon.generation.DungeonGenerator
+import dungeon.generation.DungeonGenerator.GenerationError
+import dungeon.generation.floorplan.{BSPTree, Floorplan, RandomBSPTreeParameters}
+import game.being.{Being, PositionedBeing}
+import math.{Position, Size}
+import primitives.Ratio
+import random.RNG
+import random.RNG._
 
 case class Notification(message: String)
-
-case class GameState(dungeon: Dungeon, rng: RNG) {
-  import Command._
-
-  def applyCommand(positionedBeing: PositionedBeing, command: Command): GameTransition = {
-
-    def attemptNewPosition(position: Position): GameTransition =
-      dungeon.cells.get(position) match {
-
-        case Some(cell@OpenCell(Some(being: Being), structure, itemsOnGround)) =>
-          HitTransition(positionedBeing.being, being, cell, position, this)
-
-        case Some(OpenCell(None, Some(structure: Openable), items)) =>
-          OpenTransition(positionedBeing.being, OpenCell(None, Some(structure.opened), items), position, this)
-
-        case Some(cell@OpenCell(None, structure, items)) if cell.passable =>
-          MoveTransition(positionedBeing.being, positionedBeing.position, cell, position, OpenCell(Some(positionedBeing.being), structure, Set()), items, this)
-
-        case _ =>
-          IdentityTransition(this)
-
-      }
-
-    command match {
-      case Up => attemptNewPosition(positionedBeing.position.up(1))
-      case Down => attemptNewPosition(positionedBeing.position.down(1))
-      case Left => attemptNewPosition(positionedBeing.position.left(1))
-      case Right => attemptNewPosition(positionedBeing.position.right(1))
-    }
-  }
-
-}
 
 trait GameTransition {
   def newState: GameState
@@ -49,7 +23,7 @@ case class IdentityTransition(state: GameState) extends GameTransition {
   def notifications = List()
 }
 
-case class MoveTransition(subject: Being, oldCellPosition: Position, oldCell: OpenCell, newCellPosition: Position, newCell: OpenCell, items: Set[Item], state: GameState) extends GameTransition  {
+case class MoveTransition(subject: Being, oldCellPosition: Position, oldCell: OpenCell, newCellPosition: Position, newCell: OpenCell, items: Set[Items], state: GameState) extends GameTransition  {
 
   val verb = if(subject.descriptor.isThirdPerson) "picks up" else "pick up"
   def notifications = items.map(item => Notification(s"${subject.descriptor.name} $verb ${item.amount} ${item.name}")).toList
@@ -98,32 +72,40 @@ case class HitTransition(sourceBeing: Being, targetBeing: Being, targetCell: Ope
 
 }
 
-object GameState {
+case class GameState(dungeon: Dungeon, rng: RNG) {
+  import Command._
 
-  def generatedDungeon: Rand[Either[GenerationError, Dungeon]] = rng => {
-    val gridSize = Size(50, 50)
-    val (randomTree, newRng) = BSPTree.buildRandomTree(size = gridSize)(rng)
-    val ((_, floorplan), newRng2) = FloorplanGenerator.generate(randomTree, gridSize)(newRng)
-    val (dungeonEither, newRng3) = DungeonGenerator.generate(floorplan)(newRng2)
-    (dungeonEither, newRng3)
-  }
+  def applyCommand(positionedBeing: PositionedBeing, command: Command): GameTransition = {
 
-  def start: Rand[GameState] = rng => {
+    def attemptNewPosition(position: Position): GameTransition =
+      dungeon.cells.get(position) match {
 
-    generatedDungeon(rng) match {
-      case (Right(dungeon), newRng) =>
-        (
-          GameState(
-            dungeon = dungeon,
-            rng = newRng
-          ),
-          newRng
-        )
-      case (Left(error), _) => throw new Exception("Dungeon generation failed")
+        case Some(cell@OpenCell(Some(being: Being), structure, itemsOnGround)) =>
+          HitTransition(positionedBeing.being, being, cell, position, this)
+
+        case Some(OpenCell(None, Some(structure: Openable), items)) =>
+          OpenTransition(positionedBeing.being, OpenCell(None, Some(structure.opened), items), position, this)
+
+        case Some(cell@OpenCell(None, structure, items)) if cell.passable =>
+          MoveTransition(positionedBeing.being, positionedBeing.position, cell, position, OpenCell(Some(positionedBeing.being), structure, Set()), items, this)
+
+        case _ =>
+          IdentityTransition(this)
+
+      }
+
+    command match {
+      case Up => attemptNewPosition(positionedBeing.position.up(1))
+      case Down => attemptNewPosition(positionedBeing.position.down(1))
+      case Left => attemptNewPosition(positionedBeing.position.left(1))
+      case Right => attemptNewPosition(positionedBeing.position.right(1))
     }
-
   }
+
 }
+
+
+
 
 
 sealed trait Command
@@ -144,3 +126,38 @@ object Command {
   def all: Set[Command] = Set(Up, Down, Right, Left)
 }
 
+
+/**
+  * Created by MichelCarroll on 3/28/2017.
+  */
+object GameState {
+
+  def generatedDungeon: Rand[Either[GenerationError, Dungeon]] = rng => {
+    val gridSize = Size(50, 50)
+    val (randomTree, newRng) = BSPTree.generate(
+      RandomBSPTreeParameters(
+        size = gridSize,
+        minLeafEdgeLength = 3,
+        minLeafSurfaceRelativeToTotal = Ratio(0.2)
+      ))(rng)
+    val (floorplan, newRng2) = Floorplan.generate(randomTree, gridSize)(newRng)
+    val (dungeonEither, newRng3) = DungeonGenerator.generate(floorplan)(newRng2)
+    (dungeonEither, newRng3)
+  }
+
+  def start: Rand[GameState] = rng => {
+
+    generatedDungeon(rng) match {
+      case (Right(dungeon), newRng) =>
+        (
+          GameState(
+            dungeon = dungeon,
+            rng = newRng
+          ),
+          newRng
+        )
+      case (Left(error), _) => throw new Exception("Dungeon generation failed")
+    }
+
+  }
+}

@@ -1,3 +1,6 @@
+package game.being
+
+import dungeon.Dungeon
 import math.{Angle, Position, Ray}
 
 trait Sighted {
