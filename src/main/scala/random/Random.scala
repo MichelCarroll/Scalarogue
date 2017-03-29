@@ -10,12 +10,27 @@ object RNG {
 
   type Rand[+A] = RNG => (A, RNG)
 
-  def unit[A](a: A): Rand[A] = rng => (a, rng)
+  implicit class randOps[A](rand: Rand[A]) {
 
-  def map[A,B](s: Rand[A])(f: A => B): Rand[B] = rng => {
-    val (a, newRng) = s(rng)
-    (f(a), newRng)
+    def flatMap[B](f: A => Rand[B]): Rand[B] = (rng: RNG) => {
+      val (x, rng2) = rand(rng)
+      val (y, rng3) = f(x)(rng2)
+      (y, rng3)
+    }
+
+    def map[B](f: A => B): Rand[B] = (rng: RNG) => {
+      val (x, rng2) = rand(rng)
+      (f(x), rng2)
+    }
+
+    def combine[B](other: Rand[B]): Rand[(A,B)] = (rng: RNG) => {
+      val (a, rng2) = rand(rng)
+      val (b, rng3) = other(rng2)
+      ((a, b), rng3)
+    }
   }
+
+  def unit[A](a: A): Rand[A] = rng => (a, rng)
 
   def nextPositiveInt: Rand[Int] = rng => {
     val (int, newRng) = rng.nextInt
@@ -27,15 +42,15 @@ object RNG {
     (posInt, newRng)
   }
 
-  def nextPositiveInt(max: Int): Rand[Int] = RNG.map(nextPositiveInt) { _ % (max + 1) }
+  def nextPositiveInt(max: Int): Rand[Int] = nextPositiveInt map { _ % (max + 1) }
 
-  def nextRatio: Rand[Double] = RNG.map(nextPositiveInt) { _.toDouble / Int.MaxValue }
+  def nextRatio: Rand[Double] = nextPositiveInt map { _.toDouble / Int.MaxValue }
 
-  def nextBoolean: Rand[Boolean] =  RNG.map(nextPositiveInt) { _ % 2 == 0 }
+  def nextBoolean: Rand[Boolean] =  nextPositiveInt map { _ % 2 == 0 }
 
-  def nextGaussian: Rand[Double] = RNG.map(nextPositiveInt)(new Random(_).nextGaussian())
+  def nextGaussian: Rand[Double] = nextPositiveInt map (new Random(_).nextGaussian())
 
-  def nextCappedGaussian(maxStd: Double): Rand[Double] = RNG.map(nextPositiveInt)(
+  def nextCappedGaussian(maxStd: Double): Rand[Double] = nextPositiveInt map (
     new Random(_).nextGaussian() match {
       case x if x >  maxStd => maxStd
       case x if x < -maxStd => -maxStd
@@ -43,11 +58,11 @@ object RNG {
     }
   )
 
-  def nextGaussianRatio(maxStd: Double): Rand[Double] = RNG.map(nextCappedGaussian(maxStd)) { x =>
+  def nextGaussianRatio(maxStd: Double): Rand[Double] = nextCappedGaussian(maxStd) map { x =>
     (x + maxStd) / maxStd / 2
   }
 
-  def nextPositiveGaussianRatio(maxStd: Double): Rand[Double] = RNG.map(nextCappedGaussian(maxStd)) { x =>
+  def nextPositiveGaussianRatio(maxStd: Double): Rand[Double] = nextCappedGaussian(maxStd) map { x =>
     Math.abs(x) / maxStd
   }
 
@@ -74,7 +89,7 @@ object RNG {
     else {
       val (i, newRng) = RNG.nextPositiveInt(s.size - 1)(rng)
       val item = s.iterator.drop(i).next
-      RNG.map(RNG.nextsFromSet(s - item, n - 1))(_ + item)(newRng)
+      RNG.nextsFromSet(s - item, n - 1).map(_ + item)(newRng)
     }
   }
 }

@@ -47,8 +47,8 @@ object Floorplan {
         val maxX = Math.min(area.center.x, area.maxX - roomSize.width + 1 - roomPadding)
         val maxY = Math.min(area.center.y, area.maxY - roomSize.height + 1 - roomPadding)
 
-        val (roomXPos, newRng3) = RNG.map(RNG.nextPositiveInt(maxX - minX))(_ + minX)(newRng2)
-        val (roomYPos, newRng4) = RNG.map(RNG.nextPositiveInt(maxY - minY))(_ + minY)(newRng3)
+        val (roomXPos, newRng3) = RNG.nextPositiveInt(maxX - minX).map(_ + minX)(newRng2)
+        val (roomYPos, newRng4) = RNG.nextPositiveInt(maxY - minY).map(_ + minY)(newRng3)
 
         (Room(Area(Position(roomXPos, roomYPos), roomSize)), newRng4)
       }

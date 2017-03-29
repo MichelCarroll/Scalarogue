@@ -5,7 +5,8 @@ package dungeon.generation.floorplan
 import math._
 import primitives.NonNeg._
 import primitives.Ratio
-import random.RNG
+import random.{RNG, SimpleRNG}
+import random.RNG._
 
 sealed trait BSPTree {
   import BSPTree._
@@ -46,42 +47,37 @@ object BSPTree {
 
   case class PositionedLeaf(position: Position, size: Size)
 
-  def generate(parameters: RandomBSPTreeParameters)(rng: RNG): (BSPTree, RNG) = {
-    var varRng: RNG = rng
+  def generate(parameters: RandomBSPTreeParameters): Rand[BSPTree] = {
 
-    def inner(size: Size, verticalSplit: Boolean): BSPTree = {
+    def inner(size: Size): Rand[BSPTree] = {
 
-      def verticalBranch = {
-        val leeway = size.height - parameters.minLeafEdgeLength.value * 2
-        val (topHeightOffset, newRng) = RNG.nextPositiveInt(leeway)(varRng)
-        varRng = newRng
-        val topHeight = parameters.minLeafEdgeLength.value + topHeightOffset
-        VerticalBranch(
-          inner(Size(size.width, topHeight), verticalSplit = false),
-          inner(Size(size.width, size.height - topHeight), verticalSplit = false)
-        )
-      }
+      def verticalBranch: Rand[BSPTree] =
+        RNG.nextPositiveInt(size.height - parameters.minLeafEdgeLength.value * 2)
+          .map(_ + parameters.minLeafEdgeLength.value)
+          .flatMap(topHeight =>
+              inner(Size(size.width, topHeight))
+              .combine(
+                inner(Size(size.width, size.height - topHeight))
+              )
+          )
+          .map { case (top, bottom) => VerticalBranch(top, bottom) }
 
-      def horizontalBranch = {
-        val leeway = size.width - parameters.minLeafEdgeLength.value * 2
-        val (topWidthOffset, newRng) = RNG.nextPositiveInt(leeway)(varRng)
-        varRng = newRng
-        val leftWidth = parameters.minLeafEdgeLength.value + topWidthOffset
-        HorizontalBranch(
-          inner(Size(leftWidth, size.height), verticalSplit = true),
-          inner(Size(size.width  - leftWidth, size.height), verticalSplit = true)
-        )
-      }
+      def horizontalBranch: Rand[BSPTree] =
+        RNG.nextPositiveInt(size.width - parameters.minLeafEdgeLength.value * 2)
+          .map(_ + parameters.minLeafEdgeLength.value)
+          .flatMap(leftWidth =>
+            inner(Size(leftWidth, size.height))
+              .combine(
+                inner(Size(size.width  - leftWidth, size.height))
+              )
+          )
+          .map { case (left, right) => HorizontalBranch(left, right) }
 
-      def randomOrientationBranch = {
-        val (splitVertically, newRng) = RNG.nextBoolean(varRng)
-        varRng = newRng
-
-        if (splitVertically)
-          verticalBranch
-        else
-          horizontalBranch
-      }
+      def randomOrientationBranch: Rand[BSPTree] =
+        RNG.nextBoolean.flatMap {
+          case true =>  verticalBranch
+          case false => horizontalBranch
+        }
 
       if(size.surface > parameters.minLeafSurface)
         size.shape match {
@@ -89,14 +85,36 @@ object BSPTree {
           case SkewedHorizontally if size.width > parameters.minLeafEdgeLength.value * 2  => horizontalBranch
           case SkewedVertically if size.height > parameters.minLeafEdgeLength.value * 2 => verticalBranch
         }
-      else Leaf(size)
+      else unit(Leaf(size))
     }
 
-
-    val (firstSplitIsVertical, newRng) = RNG.nextBoolean(varRng)
-    varRng = newRng
-
-    val tree = inner(parameters.size, firstSplitIsVertical)
-    (tree, varRng)
+    inner(parameters.size)
   }
+
+  trait Tree
+  case class Branch(left: Tree, right: Tree) extends Tree
+  case object Leaf extends Tree
+
+  def generate: Rand[Tree] = rng => {
+
+    def inner: Rand[Tree] = rng => {
+      val (shouldBranchOut, newRng) = RNG.nextBoolean(rng)
+
+      if(shouldBranchOut) {
+        val (left, newRng1) = inner(newRng)
+        val (right, newRng2) = inner(newRng1)
+        (Branch(left, right), newRng2)
+      }
+      else
+        (Leaf, newRng)
+    }
+
+    inner(rng)
+  }
+
+  println(generate(SimpleRNG(272)))
+
 }
+
+
+//Branch(Leaf,Branch(Branch(Leaf,Leaf),Leaf))

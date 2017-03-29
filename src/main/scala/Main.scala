@@ -52,7 +52,7 @@ object Main {
         mapSize = gridSize
       )
 
-      debugDrawingContext.drawTree(randomTree, newRng3)
+      debugDrawingContext.drawTree(randomTree)(newRng3)
       debugDrawingContext.drawTopologyRooms(floorplan.topology)
       debugDrawingContext.drawFloorplan(floorplan)
     }

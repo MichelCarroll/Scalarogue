@@ -4,7 +4,6 @@ import dungeon._
 import dungeon.generation.floorplan.Floorplan
 import game._
 import game.being.{PlayerGenerator, SpiderGenerator}
-import random.RNG
 import random.RNG._
 import math._
 
@@ -24,7 +23,7 @@ object DungeonGenerator {
     else {
 
       def randomRoomCell: Cell = {
-        val (p, newRng) = RNG.nextRatio(varRng)
+        val (p, newRng) = nextRatio(varRng)
         varRng = newRng
 
         p match {
@@ -36,7 +35,7 @@ object DungeonGenerator {
       }
 
       val entranceAndExit: (Position, Position) = {
-        val (positionedTile, newRng) = RNG.nextsFromSet(roomTiles, 2)(rng)
+        val (positionedTile, newRng) = nextsFromSet(roomTiles, 2)(rng)
         varRng = newRng
         (positionedTile.head._1, positionedTile.tail.head._1)
       }

@@ -132,17 +132,19 @@ object Command {
   */
 object GameState {
 
-  def generatedDungeon: Rand[Either[GenerationError, Dungeon]] = rng => {
+  def generatedDungeon: Rand[Either[GenerationError, Dungeon]] = {
     val gridSize = Size(50, 50)
-    val (randomTree, newRng) = BSPTree.generate(
-      RandomBSPTreeParameters(
-        size = gridSize,
-        minLeafEdgeLength = 3,
-        minLeafSurfaceRelativeToTotal = Ratio(0.2)
-      ))(rng)
-    val (floorplan, newRng2) = Floorplan.generate(randomTree, gridSize)(newRng)
-    val (dungeonEither, newRng3) = DungeonGenerator.generate(floorplan)(newRng2)
-    (dungeonEither, newRng3)
+    for {
+      randomTree <- BSPTree.generate(
+        RandomBSPTreeParameters(
+          size = gridSize,
+          minLeafEdgeLength = 3,
+          minLeafSurfaceRelativeToTotal = Ratio(0.2)
+        )
+      )
+      floorplan <- Floorplan.generate(randomTree, gridSize)
+      dungeonEither <- DungeonGenerator.generate(floorplan)
+    } yield dungeonEither
   }
 
   def start: Rand[GameState] = rng => {

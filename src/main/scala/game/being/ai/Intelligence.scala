@@ -3,7 +3,6 @@ package game.being.ai
 import dungeon.Dungeon
 import game.being.PositionedBeing
 import game.Command
-import random.RNG
 import random.RNG._
 import math._
 
@@ -15,17 +14,17 @@ trait Intelligence {
 }
 
 case class NoIntelligence() extends Intelligence {
-  def nextCommand(positionedBeing: PositionedBeing, dungeon: Dungeon) = RNG.unit(None, this)
+  def nextCommand(positionedBeing: PositionedBeing, dungeon: Dungeon) = unit(None, this)
 }
 
 case class RandomIntelligence() extends Intelligence {
   def nextCommand(positionedBeing: PositionedBeing, dungeon: Dungeon) =
-    RNG.map(RNG.nextFromSet(Command.all))(x => (x, this))
+    nextFromSet(Command.all).map(x => (x, this))
 }
 
 case class SimpleAgroIntelligence(maxRange: Int) extends Intelligence {
   def nextCommand(positionedBeing: PositionedBeing, dungeon: Dungeon) = {
-    RNG.unit(
+    unit(
       dungeon.positionedPlayer.flatMap(player =>
         if(player.position.manhattanDistanceTo(positionedBeing.position) <= maxRange)
           dungeon.bestDirectionTo(positionedBeing.position, player.position).map {

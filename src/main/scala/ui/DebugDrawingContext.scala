@@ -4,7 +4,7 @@ import dungeon.generation._
 import dungeon.generation.floorplan.{BSPTree, Floorplan}
 import dungeon.generation.floorplan.Floorplan._
 import math._
-import random.RNG
+import random.RNG._
 import org.scalajs.dom
 import org.scalajs.dom.ext.Color
 
@@ -14,15 +14,16 @@ import org.scalajs.dom.ext.Color
 class DebugDrawingContext(renderingContext: dom.CanvasRenderingContext2D, mapSize: Size) {
 
 
-  def drawTree(tree: BSPTree, rng: RNG): RNG = {
-    val positionedBSPLeaf = tree.positionedLeaves
-    val (randomColors, newRNG) = RNG.sequence(List.fill(positionedBSPLeaf.size)(randomColor))(rng)
-    positionedBSPLeaf
-      .zip(randomColors)
-      .foreach {
-        case (BSPTree.PositionedLeaf(position, leafSize), color) => drawRect(position, leafSize, color)
-      }
-    newRNG
+  def drawTree(tree: BSPTree): Rand[Unit] = {
+    val positionedLeaves = tree.positionedLeaves
+    sequence(List.fill(positionedLeaves.size)(randomColor))
+      .map(randomColors =>
+        positionedLeaves
+          .zip(randomColors)
+          .foreach {
+            case (BSPTree.PositionedLeaf(position, leafSize), color) => drawRect(position, leafSize, color)
+          }
+      )
   }
 
   def drawTopologyCorridors(dungeonTopology: Floorplan.Topology) = {
@@ -44,13 +45,11 @@ class DebugDrawingContext(renderingContext: dom.CanvasRenderingContext2D, mapSiz
     }
   }
 
-  private def randomColor: RNG.Rand[Color] = rng => {
-    val (r, random2) = RNG.nextPositiveInt(255)(rng)
-    val (g, random3) = RNG.nextPositiveInt(255)(random2)
-    val (b, random4) = RNG.nextPositiveInt(255)(random3)
-    (Color(r,g,b), random4)
-  }
-
+  private def randomColor: Rand[Color] = for {
+    r <- nextPositiveInt(255)
+    g <- nextPositiveInt(255)
+    b <- nextPositiveInt(255)
+  } yield Color(r,g,b)
 
   private def drawCell(position: Position, color: Color) = drawRect(position, Size(1, 1), color)
   private def drawArea(area: Area, color: Color) = drawRect(area.position, area.size, color)
