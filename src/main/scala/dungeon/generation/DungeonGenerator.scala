@@ -3,7 +3,7 @@ package dungeon.generation
 import dungeon._
 import dungeon.generation.floorplan.Floorplan
 import game._
-import game.being.{PlayerGenerator, SpiderGenerator}
+import game.being.{Player, Spider}
 import random.RNG
 import random.RNG._
 import math._
@@ -23,11 +23,11 @@ object DungeonGenerator {
     else {
 
       def randomRoomCell: Rand[Cell] =
-        nextRatio.map {
-          case x if x < 0.0005 => OpenCell(structure = Some(Upstairs))
-          case x if x < 0.001 =>  OpenCell(structure = Some(Downstairs))
-          case x if x < 0.015 =>  OpenCell(being = Some(SpiderGenerator.generate))
-          case _ => OpenCell()
+        nextRatio.flatMap {
+          case x if x < 0.0005 => unit(OpenCell(structure = Some(Upstairs)))
+          case x if x < 0.001 =>  unit(OpenCell(structure = Some(Downstairs)))
+          case x if x < 0.015 =>  Spider.randomNewBeing.map(being => OpenCell(being = Some(being)))
+          case _ => unit(OpenCell())
         }
 
       val randomEntranceAndExit: Rand[(Position, Position)] =
@@ -50,16 +50,19 @@ object DungeonGenerator {
         ).map(_.toMap)
       }
 
-      randomFloorplanCells.combine(randomEntranceAndExit).map {
-        case (floorplanCells, (entrancePosition, exitPosition)) =>
-          Right(Dungeon(
-            cells = wallCells ++ floorplanCells
-              + (entrancePosition -> OpenCell(being = Some(PlayerGenerator.generate), structure = Some(Upstairs)))
-              + (exitPosition -> OpenCell(structure = Some(Downstairs))),
-            area = Area(Position(0,0), floorplan.size),
-            entrancePosition = entrancePosition
-          ))
-      }
+      randomFloorplanCells
+        .combine(randomEntranceAndExit)
+        .combine(Player.randomNewBeing)
+        .map {
+          case ((floorplanCells, (entrancePosition, exitPosition)), player) =>
+            Right(Dungeon(
+              cells = wallCells ++ floorplanCells
+                + (entrancePosition -> OpenCell(being = Some(player), structure = Some(Upstairs)))
+                + (exitPosition -> OpenCell(structure = Some(Downstairs))),
+              area = Area(Position(0,0), floorplan.size),
+              entrancePosition = entrancePosition
+            ))
+        }
 
     }
   }

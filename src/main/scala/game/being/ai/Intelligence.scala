@@ -6,18 +6,16 @@ import game.Command
 import random.RNG._
 import math._
 
-/**
-  * Created by MichelCarroll on 3/28/2017.
-  */
+
 trait Intelligence {
   def nextCommand(positionedBeing: PositionedBeing, dungeon: Dungeon): Rand[(Option[Command], Intelligence)]
 }
 
-case class NoIntelligence() extends Intelligence {
+case object NoIntelligence extends Intelligence {
   def nextCommand(positionedBeing: PositionedBeing, dungeon: Dungeon) = unit(None, this)
 }
 
-case class RandomIntelligence() extends Intelligence {
+case object RandomIntelligence extends Intelligence {
   def nextCommand(positionedBeing: PositionedBeing, dungeon: Dungeon) =
     nextFromSet(Command.all).map(x => (x, this))
 }
@@ -39,4 +37,8 @@ case class SimpleAgroIntelligence(maxRange: Int) extends Intelligence {
       ,this
     )
   }
+}
+
+trait IntelligenceFactory {
+  def randomNewIntelligence: Rand[Intelligence]
 }
