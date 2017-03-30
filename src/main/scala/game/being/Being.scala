@@ -14,10 +14,11 @@ case class Being(descriptor: BeingDescriptor, health: Health, intelligence: Inte
 
   def dead = health.value <= 0
 
-  def withNextCommand(position: Position, dungeon: Dungeon): Rand[(Option[Command], Being)] = rng => {
-    val ((nextCommand, nextIntelligence), nextRng) = intelligence.nextCommand(PositionedBeing(position, this), dungeon)(rng)
-    ((nextCommand, Being(descriptor, health, nextIntelligence)), nextRng)
-  }
+  def withNextCommand(position: Position, dungeon: Dungeon): Rand[(Option[Command], Being)] =
+    intelligence.nextCommand(PositionedBeing(position, this), dungeon).map {
+      case (nextCommand, nextIntelligence) => (nextCommand, Being(descriptor, health, nextIntelligence))
+    }
+  
 }
 
 case class PositionedBeing(position: Position, being: Being)
