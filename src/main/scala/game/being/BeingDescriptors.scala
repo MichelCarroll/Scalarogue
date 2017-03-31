@@ -1,33 +1,25 @@
 package game.being
 
-import game.{Gold, Items}
+import game.{Gold, Items, Describable}
 import game.being.ai.{IntelligenceFactory, NoIntelligence, SimpleAgroIntelligence}
 import math.{Area, Position}
 import random.RNG._
-import random.SimpleRNG
 
-trait BeingDescriptor {
-  def name: String
-  def pronoun: String
+trait BeingDescriptor extends Describable {
   def drop: Option[Items]
   def isThirdPerson = true
   val damageRange: DamageRange
   val bodyFactory: BodyFactory
   val intelligenceFactory: IntelligenceFactory
 
-  def randomNewBeing: Rand[Being] = {
-    println(name)
-    println(bodyFactory.randomNewBody(SimpleRNG(125412)))
-    println(intelligenceFactory.randomNewIntelligence(SimpleRNG(125412)))
+  def randomNewBeing: Rand[Being] =
     bodyFactory.randomNewBody
       .combine(intelligenceFactory.randomNewIntelligence)
       .map {
-        case (body, intelligence) => {
-          Being(this, body, intelligence)
-        }
+        case (body, intelligence) => Being(this, body, intelligence)
       }
-  }
 }
+
 
 case object Player extends BeingDescriptor with Sighted {
 
@@ -46,7 +38,7 @@ case object Player extends BeingDescriptor with Sighted {
   )
 
   val bodyFactory = new BodyFactory {
-    override def randomNewBody = unit(Body(Health(value = 20)))
+    override def randomNewBody = new SimpleHumanoidGaussianBodyFactory(meanHealth = 20, variation = 3).randomNewBody
   }
 
   val intelligenceFactory = new IntelligenceFactory {
@@ -62,7 +54,7 @@ case object Spider extends BeingDescriptor {
   def drop = Some(Gold(5))
   val damageRange = DamageRange(Damage(1), Damage(2))
 
-  val bodyFactory = new SimpleGaussianBodyFactory(meanHealth = 5, variation = 3)
+  val bodyFactory = new SimpleHumanoidGaussianBodyFactory(meanHealth = 5, variation = 3)
 
   val intelligenceFactory = new IntelligenceFactory {
     override def randomNewIntelligence = unit(SimpleAgroIntelligence(maxRange = 4))

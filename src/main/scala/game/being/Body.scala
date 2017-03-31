@@ -1,21 +1,119 @@
 package game.being
 
+import game.{Describable, Notification}
 import random.RNG
 import random.RNG._
 
 
-case class Body(health: Health) {
-  def damagedBy(damage: Damage) = Body(health - damage)
+trait Mortal {
+  def dead: Boolean
+}
+
+trait Conscious {
+  def unconscious: Boolean
+}
+
+trait BodyPart extends Damagable with Describable
+
+trait Damagable {
+  val fullHealth: Health
+  val health: Health
+  val destroyed = health.value <= 0
+  def damagePercentage: Double = health / fullHealth
+}
+
+trait Body extends Conscious with Mortal {
+  def struckBy(damage: Damage): Rand[(Body, Option[Notification])]
 }
 
 trait BodyFactory {
   def randomNewBody: Rand[Body]
 }
 
-class SimpleGaussianBodyFactory(meanHealth: Int, variation: Int) extends BodyFactory {
-  def randomNewBody: Rand[Body] = RNG.nextGaussianRatio(3)
-    .map { ratio =>
-      val randomHealthValue = (meanHealth - variation + variation * 2 * ratio).round.toInt
-      Body(Health(Math.max(1, randomHealthValue)))
+class SimpleHumanoidGaussianBodyFactory(meanHealth: Int, variation: Int) extends BodyFactory {
+
+  def randomNewBody: Rand[Body] = {
+
+    def randomHealth = RNG.nextGaussianRatio(3)
+      .map(ratio => Health((meanHealth - variation + variation * 2 * ratio).round.toInt))
+
+    randomHealth.combine(randomHealth).combine(randomHealth)
+      .combine(randomHealth).combine(randomHealth).combine(randomHealth)
+      .map {
+        case (((((h1, h2), h3), h4), h5), h6) =>
+          HumanoidBody(
+            leftArm = HumanoidArm(h1,h1),
+            rightArm = HumanoidArm(h2,h2),
+            leftLeg = HumanoidLeg(h3,h3),
+            rightLeg = HumanoidLeg(h4,h4),
+            torso = HumanoidTorso(h5,h5),
+            head = HumanoidHead(h6,h6)
+          )
+      }
+
+  }
+}
+
+
+
+
+
+case class HumanoidBody(leftArm: HumanoidArm,
+                         rightArm: HumanoidArm,
+                         leftLeg: HumanoidLeg,
+                         rightLeg: HumanoidLeg,
+                         torso: HumanoidTorso,
+                         head: HumanoidHead) extends Body {
+
+
+    def dead: Boolean = head.destroyed || torso.destroyed
+    def unconscious: Boolean = head.damagePercentage < 0.3
+    def struckBy(damage: Damage) = {
+
+      val undestroyedBodyParts = Set(
+        (1, (leftArm, this.copy(leftArm = leftArm.damagedBy(damage)))),
+        (1, (rightArm, this.copy(rightArm = rightArm.damagedBy(damage)))),
+        (1, (leftLeg, this.copy(leftLeg = leftLeg.damagedBy(damage)))),
+        (1, (rightLeg, this.copy(rightLeg = rightLeg.damagedBy(damage)))),
+        (1, (head, this.copy(head = head.damagedBy(damage)))),
+        (5, (torso, this.copy(torso = torso.damagedBy(damage))))
+      ).filter(!_._2._1.destroyed)
+
+      if(undestroyedBodyParts.isEmpty)
+        unit((this, None))
+      else
+        RNG.nextInWeightedSet(undestroyedBodyParts)
+          .map {
+            case (bodyPart, newBody) =>
+              if(bodyPart.destroyed)
+                (newBody, Some(Notification(s"the ${bodyPart.name} received ${damage.value} damage, and got destroyed!")))
+              else
+                (newBody, Some(Notification(s"the ${bodyPart.name} received ${damage.value} damage!")))
+          }
     }
+
+}
+
+case class HumanoidLeg(fullHealth: Health, health: Health) extends BodyPart {
+  def damagedBy(damage: Damage) = this.copy(health = health - damage)
+  def name = "leg"
+  def pronoun = "it"
+}
+
+case class HumanoidArm(fullHealth: Health, health: Health) extends BodyPart {
+  def damagedBy(damage: Damage) = this.copy(health = health - damage)
+  def name = "arm"
+  def pronoun = "it"
+}
+
+case class HumanoidTorso(fullHealth: Health, health: Health) extends BodyPart {
+  def damagedBy(damage: Damage) = this.copy(health = health - damage)
+  def name = "torso"
+  def pronoun = "it"
+}
+
+case class HumanoidHead(fullHealth: Health, health: Health) extends BodyPart {
+  def damagedBy(damage: Damage) = this.copy(health = health - damage)
+  def name = "head"
+  def pronoun = "it"
 }

@@ -11,7 +11,6 @@ import primitives.Ratio
 import random.RNG
 import random.RNG._
 
-case class Notification(message: String)
 
 trait GameTransition {
   def newState: GameState
@@ -47,20 +46,24 @@ case class HitTransition(sourceBeing: Being, targetBeing: Being, targetCell: Ope
   val hitVerb = if(sourceBeing.descriptor.isThirdPerson) "hits" else "hit"
   val slayVerb = if(sourceBeing.descriptor.isThirdPerson) "slays" else "slay"
 
-  val (damage, newRng) = sourceBeing.descriptor.damageRange.randomDamage(state.rng)
-  val newBeing = targetBeing.hit(damage)
-  val damageNotification = Notification(s"${sourceBeing.descriptor.name} $hitVerb ${newBeing.descriptor.name} for ${damage.value} damage!")
+  val (((newBeing, notificationOpt), damage), newRng) = sourceBeing.descriptor.damageRange
+    .randomDamage
+    .flatMap(damage => targetBeing.hit(damage).map((_, damage)))(state.rng)
 
-  def notifications =
-    if(newBeing.dead)
+  def damageNotifications = Notification(s"${sourceBeing.descriptor.name} $hitVerb ${newBeing.descriptor.name} for ${damage.value} damage!")
+  def damageEffectNotifications = notificationOpt.map(List(_)).getOrElse(List())
+  def deathNotifications =
+    if(newBeing.body.dead)
       newBeing.descriptor.drop match {
-        case Some(item) => List(damageNotification, Notification(s"${sourceBeing.descriptor.name} $slayVerb ${newBeing.descriptor.name}, and ${targetBeing.descriptor.pronoun} drops ${item.amount} ${item.name}!"))
-        case None => List(damageNotification, Notification(s"${sourceBeing.descriptor.name} $slayVerb ${newBeing.descriptor.name}!"))
+        case Some(item) => List(Notification(s"${sourceBeing.descriptor.name} $slayVerb ${newBeing.descriptor.name}, and ${targetBeing.descriptor.pronoun} drops ${item.amount} ${item.name}!"))
+        case None => List(Notification(s"${sourceBeing.descriptor.name} $slayVerb ${newBeing.descriptor.name}!"))
       }
-    else List(damageNotification)
+    else List()
+
+  def notifications = damageNotifications :: damageEffectNotifications ++ deathNotifications
 
   def newState = {
-    val updatedDungeon = if(newBeing.dead)
+    val updatedDungeon = if(newBeing.body.dead)
       state.dungeon.withUpdatedCell(targetBeingPosition,
         OpenCell(None, targetCell.structure, newBeing.descriptor.drop.map(targetCell.item + _).getOrElse(targetCell.item))
       )
