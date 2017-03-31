@@ -92,6 +92,19 @@ object RNG {
       RNG.nextsFromSet(s - item, n - 1).map(_ + item)(newRng)
     }
   }
+
+  def nextInWeightedSet[A](s: Set[(Int, A)]): Rand[Option[A]] = nextRatio
+    .map { ratio =>
+      val sum = s.foldRight(0)(_._1 + _)
+      val position = (sum * ratio).round.toInt
+      s.foldLeft((0, None:Option[A])) { (last, current) =>
+        val currentSum = last._1 + current._1
+        if(position < currentSum) {
+          (-1, Some(current._2))
+        }
+        else (currentSum, last._2)
+      }._2
+    }
 }
 
 case class SimpleRNG(seed: Long) extends RNG {
