@@ -5,6 +5,7 @@ import dungeon.{Cell, Dungeon, OpenCell}
 import dungeon.generation.DungeonGenerator
 import dungeon.generation.DungeonGenerator.GenerationError
 import dungeon.generation.floorplan.{BSPTree, Floorplan, RandomBSPTreeParameters}
+import game.RelationshipWithUser.Other
 import game.being.{Being, PositionedBeing}
 import math.{Position, Size}
 import primitives.Ratio
@@ -22,10 +23,9 @@ case class IdentityTransition(state: GameState) extends GameTransition {
   def notifications = List()
 }
 
-case class MoveTransition(subject: Being, oldCellPosition: Position, oldCell: OpenCell, newCellPosition: Position, newCell: OpenCell, items: Set[Items], state: GameState) extends GameTransition  {
+case class MoveTransition(subject: Being, oldCellPosition: Position, oldCell: OpenCell, newCellPosition: Position, newCell: OpenCell, items: Set[Item], state: GameState) extends GameTransition  {
 
-  val verb = if(subject.descriptor.isThirdPerson) "picks up" else "pick up"
-  def notifications = items.map(item => Notification(s"${subject.descriptor.name} $verb ${item.amount} ${item.name}")).toList
+  def notifications = items.map(item => TargetTaken(subject.descriptor, item)).toList
 
   def newState =  state.copy(
     dungeon = state.dungeon
@@ -35,28 +35,24 @@ case class MoveTransition(subject: Being, oldCellPosition: Position, oldCell: Op
 
 }
 
-case class OpenTransition(subject: Being, newCell: Cell, position: Position, state: GameState) extends GameTransition  {
-  val verb = if(subject.descriptor.isThirdPerson) "opens" else "open"
-  def notifications = List(Notification(s"${subject.descriptor.name} $verb a door"))
+case class OpenTransition(subject: Being, openable: Openable, newCell: Cell, position: Position, state: GameState) extends GameTransition  {
+  def notifications = List(TargetOpened(subject.descriptor, openable))
   def newState = state.copy(dungeon = state.dungeon.withUpdatedCell(position, newCell))
 }
 
 case class HitTransition(sourceBeing: Being, targetBeing: Being, targetCell: OpenCell, targetBeingPosition: Position, state: GameState) extends GameTransition  {
 
-  val hitVerb = if(sourceBeing.descriptor.isThirdPerson) "hits" else "hit"
-  val slayVerb = if(sourceBeing.descriptor.isThirdPerson) "slays" else "slay"
-
   val (((newBeing, notificationOpt), damage), newRng) = sourceBeing.descriptor.damageRange
     .randomDamage
     .flatMap(damage => targetBeing.hit(damage).map((_, damage)))(state.rng)
 
-  def damageNotifications = Notification(s"${sourceBeing.descriptor.name} $hitVerb ${newBeing.descriptor.name} for ${damage.value} damage!")
+  def damageNotifications = TargetHit(sourceBeing.descriptor, newBeing.descriptor, damage)
   def damageEffectNotifications = notificationOpt.map(List(_)).getOrElse(List())
   def deathNotifications =
     if(newBeing.body.dead)
       newBeing.descriptor.drop match {
-        case Some(item) => List(Notification(s"${sourceBeing.descriptor.name} $slayVerb ${newBeing.descriptor.name}, and ${targetBeing.descriptor.pronoun} drops ${item.amount} ${item.name}!"))
-        case None => List(Notification(s"${sourceBeing.descriptor.name} $slayVerb ${newBeing.descriptor.name}!"))
+        case Some(item) => List(TargetDies(newBeing.descriptor), TargetDropsItem(targetBeing.descriptor, item))
+        case None => List(TargetDies(newBeing.descriptor))
       }
     else List()
 
@@ -86,8 +82,8 @@ case class GameState(dungeon: Dungeon, rng: RNG) {
         case Some(cell@OpenCell(Some(being: Being), structure, itemsOnGround)) =>
           HitTransition(positionedBeing.being, being, cell, position, this)
 
-        case Some(OpenCell(None, Some(structure: Openable), items)) =>
-          OpenTransition(positionedBeing.being, OpenCell(None, Some(structure.opened), items), position, this)
+        case Some(OpenCell(None, Some(openable: Openable), items)) =>
+          OpenTransition(positionedBeing.being, openable, OpenCell(None, Some(openable.opened), items), position, this)
 
         case Some(cell@OpenCell(None, structure, items)) if cell.passable =>
           MoveTransition(positionedBeing.being, positionedBeing.position, cell, position, OpenCell(Some(positionedBeing.being), structure, Set()), items, this)

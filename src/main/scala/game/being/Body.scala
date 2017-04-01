@@ -1,6 +1,6 @@
 package game.being
 
-import game.{Describable, Notification}
+import game.{Named, Notification}
 import random.RNG
 import random.RNG._
 
@@ -13,7 +13,7 @@ trait Conscious {
   def unconscious: Boolean
 }
 
-trait BodyPart extends Damagable with Describable
+trait BodyPart extends Damagable with Named
 
 trait Damagable {
   val fullHealth: Health
@@ -23,7 +23,7 @@ trait Damagable {
 }
 
 trait Body extends Conscious with Mortal {
-  def struckBy(damage: Damage): Rand[(Body, Option[Notification])]
+  def struckBy(damage: Damage): Rand[(Body, Option[BodyEffect])]
 }
 
 trait BodyFactory {
@@ -56,7 +56,9 @@ class SimpleHumanoidGaussianBodyFactory(meanHealth: Int, variation: Int) extends
 
 
 
-
+sealed trait BodyEffect
+case class BodyPartDamaged(bodyPart: BodyPart, damage: Damage) extends BodyEffect
+case class BodyPartDestroyed(bodyPart: BodyPart, damage: Damage) extends BodyEffect
 
 case class HumanoidBody(leftArm: HumanoidArm,
                          rightArm: HumanoidArm,
@@ -86,9 +88,9 @@ case class HumanoidBody(leftArm: HumanoidArm,
           .map {
             case (bodyPart, newBody) =>
               if(bodyPart.destroyed)
-                (newBody, Some(Notification(s"the ${bodyPart.name} received ${damage.value} damage, and got destroyed!")))
+                (newBody, Some(BodyPartDestroyed(bodyPart, damage)))
               else
-                (newBody, Some(Notification(s"the ${bodyPart.name} received ${damage.value} damage!")))
+                (newBody, Some(BodyPartDamaged(bodyPart, damage)))
           }
     }
 
@@ -96,24 +98,20 @@ case class HumanoidBody(leftArm: HumanoidArm,
 
 case class HumanoidLeg(fullHealth: Health, health: Health) extends BodyPart {
   def damagedBy(damage: Damage) = this.copy(health = health - damage)
-  def name = "leg"
-  def pronoun = "it"
+  val name = "leg"
 }
 
 case class HumanoidArm(fullHealth: Health, health: Health) extends BodyPart {
   def damagedBy(damage: Damage) = this.copy(health = health - damage)
-  def name = "arm"
-  def pronoun = "it"
+  val name = "arm"
 }
 
 case class HumanoidTorso(fullHealth: Health, health: Health) extends BodyPart {
   def damagedBy(damage: Damage) = this.copy(health = health - damage)
-  def name = "torso"
-  def pronoun = "it"
+  val name = "torso"
 }
 
 case class HumanoidHead(fullHealth: Health, health: Health) extends BodyPart {
   def damagedBy(damage: Damage) = this.copy(health = health - damage)
-  def name = "head"
-  def pronoun = "it"
+  val name = "head"
 }

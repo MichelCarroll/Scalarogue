@@ -1,12 +1,13 @@
 package game.being
 
-import game.{Gold, Items, Describable}
+import game.RelationshipWithUser.{Himself, Other}
+import game.{Describable, Gold, Item}
 import game.being.ai.{IntelligenceFactory, NoIntelligence, SimpleAgroIntelligence}
 import math.{Area, Position}
 import random.RNG._
 
 trait BeingDescriptor extends Describable {
-  def drop: Option[Items]
+  def drop: Option[Item]
   def isThirdPerson = true
   val damageRange: DamageRange
   val bodyFactory: BodyFactory
@@ -25,7 +26,7 @@ case object Player extends BeingDescriptor with Sighted {
 
   override def isThirdPerson = false
   val name = "you"
-  val pronoun = "your"
+  val relationshipWithUser = Himself
   def drop = None
   val damageRange = DamageRange(Damage(2), Damage(4))
 
@@ -49,8 +50,8 @@ case object Player extends BeingDescriptor with Sighted {
 
 
 case object Spider extends BeingDescriptor {
-  def name = "a spider"
-  def pronoun = "it"
+  val name = "spider"
+  val relationshipWithUser = Other
   def drop = Some(Gold(5))
   val damageRange = DamageRange(Damage(1), Damage(2))
 

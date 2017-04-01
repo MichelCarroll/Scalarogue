@@ -1,10 +1,10 @@
 package game
 
-import ui.GameDisplayAdapter
 import game.being.{PositionedBeing, Spider}
-import random.SimpleRNG
 import org.scalajs.dom
 import org.scalajs.dom.ext.Color
+import random.SimpleRNG
+import ui.GameDisplayAdapter
 
 
 /**

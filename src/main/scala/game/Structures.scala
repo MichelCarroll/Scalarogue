@@ -1,6 +1,9 @@
 package game
 
-sealed trait Structure {
+import game.RelationshipWithUser.Other
+
+sealed trait Structure extends Describable {
+  val relationshipWithUser = Other
   def opaque: Boolean
 }
 
@@ -11,18 +14,22 @@ sealed trait Openable extends Structure {
 sealed trait Blocking extends Structure
 
 case object Upstairs extends Structure with Blocking {
+  val name = "stairs"
   def opaque = false
 }
 
 case object Downstairs extends Structure {
-  def opaque = false
+  val name = "stairs"
+  val opaque = false
 }
 
 case object OpenedDoor extends Structure {
+  val name = "door"
   def opaque = false
 }
 
 case object ClosedDoor extends Structure with Openable with Blocking {
+  val name = "door"
   def opaque = true
   def opened = OpenedDoor
 }

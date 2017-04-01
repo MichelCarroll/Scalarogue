@@ -3,7 +3,7 @@ package game
 /**
   * Created by MichelCarroll on 3/28/2017.
   */
-sealed trait Items {
+sealed trait Item {
   val amount: Int
   val name: String
 }
@@ -11,6 +11,6 @@ sealed trait Items {
 /**
   * Created by MichelCarroll on 3/28/2017.
   */
-case class Gold(amount: Int) extends Items {
+case class Gold(amount: Int) extends Item {
   val name = "gold"
 }

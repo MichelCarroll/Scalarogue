@@ -2,7 +2,7 @@ package game.being
 
 import dungeon.Dungeon
 import game.being.ai.Intelligence
-import game.{Command, Notification}
+import game.{Command, Notification, TargetGetsBodyEffect}
 import math.Position
 import random.RNG._
 
@@ -11,7 +11,10 @@ case class Being(descriptor: BeingDescriptor, body: Body, intelligence: Intellig
 
   def hit(damage: Damage): Rand[(Being, Option[Notification])] =
     body.struckBy(damage)
-      .map { case (newBody, notificationOpt) => (copy(body = newBody), notificationOpt) }
+      .map { case (newBody, bodyEffectOpt) => (
+        copy(body = newBody),
+        bodyEffectOpt.map(TargetGetsBodyEffect(descriptor, _))
+      )}
 
   def withNextCommand(position: Position, dungeon: Dungeon): Rand[(Option[Command], Being)] =
     intelligence.nextCommand(PositionedBeing(position, this), dungeon).map {
