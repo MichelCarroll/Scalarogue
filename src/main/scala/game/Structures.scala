@@ -1,9 +1,6 @@
 package game
 
-import game.RelationshipWithUser.Other
-
 sealed trait Structure extends Describable {
-  val relationshipWithUser = Other
   def opaque: Boolean
 }
 

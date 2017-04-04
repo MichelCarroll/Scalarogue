@@ -5,7 +5,6 @@ import dungeon.{Cell, Dungeon, OpenCell}
 import dungeon.generation.DungeonGenerator
 import dungeon.generation.DungeonGenerator.GenerationError
 import dungeon.generation.floorplan.{BSPTree, Floorplan, RandomBSPTreeParameters}
-import game.RelationshipWithUser.Other
 import game.being.{Being, PositionedBeing}
 import math.{Position, Size}
 import primitives.Ratio

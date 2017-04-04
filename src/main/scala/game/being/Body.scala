@@ -72,25 +72,27 @@ case class HumanoidBody(leftArm: HumanoidArm,
     def unconscious: Boolean = head.damagePercentage < 0.3
     def struckBy(damage: Damage) = {
 
+      case class AffectedBodyPart(before: BodyPart, after: BodyPart, newBody: HumanoidBody)
+
       val undestroyedBodyParts = Set(
-        (1, (leftArm, this.copy(leftArm = leftArm.damagedBy(damage)))),
-        (1, (rightArm, this.copy(rightArm = rightArm.damagedBy(damage)))),
-        (1, (leftLeg, this.copy(leftLeg = leftLeg.damagedBy(damage)))),
-        (1, (rightLeg, this.copy(rightLeg = rightLeg.damagedBy(damage)))),
-        (1, (head, this.copy(head = head.damagedBy(damage)))),
-        (5, (torso, this.copy(torso = torso.damagedBy(damage))))
-      ).filter(!_._2._1.destroyed)
+        (1, AffectedBodyPart(leftArm, leftArm.damagedBy(damage), this.copy(leftArm = leftArm.damagedBy(damage)))),
+        (1, AffectedBodyPart(rightArm, rightArm.damagedBy(damage), this.copy(rightArm = rightArm.damagedBy(damage)))),
+        (1, AffectedBodyPart(leftLeg, leftLeg.damagedBy(damage), this.copy(leftLeg = leftLeg.damagedBy(damage)))),
+        (1, AffectedBodyPart(rightLeg, rightLeg.damagedBy(damage), this.copy(rightLeg = rightLeg.damagedBy(damage)))),
+        (1, AffectedBodyPart(head, head.damagedBy(damage), this.copy(head = head.damagedBy(damage)))),
+        (5, AffectedBodyPart(torso, torso.damagedBy(damage), this.copy(torso = torso.damagedBy(damage))))
+      ).filter(!_._2.before.destroyed)
 
       if(undestroyedBodyParts.isEmpty)
         unit((this, None))
       else
         RNG.nextInWeightedSet(undestroyedBodyParts)
           .map {
-            case (bodyPart, newBody) =>
-              if(bodyPart.destroyed)
-                (newBody, Some(BodyPartDestroyed(bodyPart, damage)))
+            case AffectedBodyPart(before, after, newBody) =>
+              if(after.destroyed)
+                (newBody, Some(BodyPartDestroyed(before, damage)))
               else
-                (newBody, Some(BodyPartDamaged(bodyPart, damage)))
+                (newBody, Some(BodyPartDamaged(before, damage)))
           }
     }
 
