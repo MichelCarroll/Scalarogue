@@ -1,6 +1,6 @@
 package game.being
 
-import game.{Named, Notification}
+import game.Named
 import random.RNG
 import random.RNG._
 

@@ -19,8 +19,8 @@ object RelationshipWithUser {
 
 trait Named { self =>
   val name: String
-  def ownedBy(ownerRelationship: RelationshipWithUser) = new Describable {
-    override val relationshipWithUser: RelationshipWithUser = ownerRelationship match {
+  def ownedBy(owner: Describable) = new Describable {
+    override val relationshipWithUser: RelationshipWithUser = owner.relationshipWithUser match {
       case Other => Other
       case _ => HisBelonging
     }
@@ -57,9 +57,18 @@ case class TargetOpened(by: Describable, target: Describable) extends Notificati
   val message = s"${by.subject} $verb ${target.subject}"
 }
 
-case class TargetHit(by: Describable, target: Describable, damage: Damage) extends Notification {
+case class TargetHit(by: Describable, target: Describable, bodyEffectOpt: Option[BodyEffect]) extends Notification {
   val verb = if(by.relationshipWithUser.isThirdPerson) "hits" else "hit"
-  val message = s"${by.subject} $verb ${target.subject} for ${damage.value} damage!"
+  val prefixMessage = s"${by.subject} $verb ${target.subject}"
+
+  val message = bodyEffectOpt match {
+    case Some(BodyPartDamaged(bodyPart, damage)) =>
+      s"$prefixMessage, and ${bodyPart.ownedBy(target).subject} received ${damage.value} damage"
+    case Some(BodyPartDestroyed(bodyPart, damage)) =>
+      s"$prefixMessage, and ${bodyPart.ownedBy(target).subject} received ${damage.value} damage, and got destroyed!"
+    case None =>
+      s"$prefixMessage, and has no effect!"
+}
 }
 
 case class TargetDies(target: Describable) extends Notification {
@@ -70,11 +79,4 @@ case class TargetDies(target: Describable) extends Notification {
 case class TargetDropsItem(by: Describable, item: Item) extends Notification {
   val verb = if(by.relationshipWithUser.isThirdPerson) "drops" else "drop"
   val message = s"${by.subject} $verb ${item.amount} ${item.name}!"
-}
-
-case class TargetGetsBodyEffect(target: Describable, bodyEffect: BodyEffect) extends Notification {
-  val message = bodyEffect match {
-    case BodyPartDamaged(bodyPart, damage) => s"${bodyPart.ownedBy(target.relationshipWithUser).subject} received ${damage.value} damage"
-    case BodyPartDestroyed(bodyPart, damage) => s"${bodyPart.ownedBy(target.relationshipWithUser).subject} received ${damage.value} damage, and got destroyed!"
-  }
 }

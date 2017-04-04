@@ -46,8 +46,7 @@ case class HitTransition(sourceBeing: Being, targetBeing: Being, targetCell: Ope
     .randomDamage
     .flatMap(damage => targetBeing.hit(damage).map((_, damage)))(state.rng)
 
-  def damageNotifications = TargetHit(sourceBeing.descriptor, newBeing.descriptor, damage)
-  def damageEffectNotifications = notificationOpt.map(List(_)).getOrElse(List())
+  def hitNotification = TargetHit(sourceBeing.descriptor, newBeing.descriptor, notificationOpt)
   def deathNotifications =
     if(newBeing.body.dead)
       newBeing.descriptor.drop match {
@@ -56,7 +55,7 @@ case class HitTransition(sourceBeing: Being, targetBeing: Being, targetCell: Ope
       }
     else List()
 
-  def notifications = damageNotifications :: damageEffectNotifications ++ deathNotifications
+  def notifications = hitNotification :: deathNotifications
 
   def newState = {
     val updatedDungeon = if(newBeing.body.dead)
