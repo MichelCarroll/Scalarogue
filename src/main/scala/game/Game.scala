@@ -1,6 +1,7 @@
 package game
 
 import game.being.{PositionedBeing, Spider}
+import math.Position
 import org.scalajs.dom
 import org.scalajs.dom.ext.Color
 import random.SimpleRNG
@@ -18,9 +19,7 @@ class Game(seed: Int, displayAdapter: GameDisplayAdapter) {
   private var gameState = initialGameState
 
   displayAdapter.mainViewportDrawingContext.ready.map(_ =>
-    gameState.dungeon.positionedPlayer.foreach(positionedPlayer =>
-      redraw(gameState, positionedPlayer)
-    )
+    gameState.dungeon.positionedPlayer.foreach(positionedPlayer => redraw(gameState, positionedPlayer.position))
   )
 
   dom.document.onkeydown = (e: dom.KeyboardEvent) => {
@@ -50,14 +49,12 @@ class Game(seed: Int, displayAdapter: GameDisplayAdapter) {
       postAITransition._1.foreach(notification => displayAdapter.notificationContext.notify(notification.message, Color.White))
     })
 
-    gameState.dungeon.positionedPlayer.foreach(positionedPlayer => {
-      redraw(gameState, positionedPlayer)
-    })
+    gameState.dungeon.positionedPlayer.foreach(positionedPlayer => redraw(gameState, positionedPlayer.position))
   }
 
-  private def redraw(gameState: GameState, positionedPlayer: PositionedBeing): Unit = {
-    displayAdapter.mainViewportDrawingContext.drawFromPerspective(gameState, positionedPlayer.position)
-    displayAdapter.minimapDrawingContext.draw(gameState, positionedPlayer.position)
+  private def redraw(gameState: GameState, cameraPosition: Position): Unit = {
+    displayAdapter.mainViewportDrawingContext.drawFromPerspective(gameState, cameraPosition)
+    displayAdapter.minimapDrawingContext.draw(gameState, cameraPosition)
   }
 
 }
