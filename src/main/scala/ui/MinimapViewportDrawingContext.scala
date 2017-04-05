@@ -31,10 +31,10 @@ class MinimapViewportDrawingContext(renderingContext: dom.CanvasRenderingContext
 
     val cellEdge = drawingArea.size.width / gameState.dungeon.area.size.width
 
-    gameState.dungeon.cells.foreach {
-      case (position, OpenCell(_,_,_)) => drawCell(position, Color.Green)
-      case _ =>
-    }
+    val openPositions = gameState.dungeon.cells.flatMap {
+      case (position, OpenCell(_,_,_)) => Some(position)
+      case _ => None
+    }.toSet
 
     def drawCell(position: Position, color: Color) = {
       renderingContext.fillStyle = color.toString()
@@ -45,6 +45,13 @@ class MinimapViewportDrawingContext(renderingContext: dom.CanvasRenderingContext
         cellEdge
       )
     }
+
+    (viewport.positions intersect openPositions intersect gameState.revealedPositions)
+      .foreach(position => drawCell(position, Color.Green))
+
+    (openPositions intersect gameState.revealedPositions diff viewport.positions)
+      .foreach(position => drawCell(position, Color(50,50,50)))
+
 
     renderingContext.strokeStyle = Color.White.toString
     renderingContext.lineWidth = 2

@@ -5,7 +5,7 @@ import dungeon.{Cell, Dungeon, OpenCell}
 import dungeon.generation.DungeonGenerator
 import dungeon.generation.DungeonGenerator.GenerationError
 import dungeon.generation.floorplan.{BSPTree, Floorplan, RandomBSPTreeParameters}
-import game.being.{Being, PositionedBeing}
+import game.being.{Being, Player, PositionedBeing}
 import math.{Position, Size}
 import primitives.Ratio
 import random.RNG
@@ -26,11 +26,22 @@ case class MoveTransition(subject: Being, oldCellPosition: Position, oldCell: Op
 
   def notifications = items.map(item => TargetTaken(subject.descriptor, item)).toList
 
-  def newState =  state.copy(
-    dungeon = state.dungeon
-      .withRemovedBeing(oldCellPosition)
-      .withUpdatedCell(newCellPosition, newCell)
+  def newState = state.copy(dungeon = state.dungeon
+    .withRemovedBeing(oldCellPosition)
+    .withUpdatedCell(newCellPosition, newCell)
   )
+
+}
+
+case class RefreshRevealedPositionsTransition(state: GameState) extends GameTransition {
+
+  def notifications = List()
+
+  def newState = state.dungeon.positionedPlayer match {
+    case Some(PositionedBeing(playerPosition,_)) =>
+      state.copy(revealedPositions = state.revealedPositions ++ Player.positionsWithinRangeTouchedByPerimeterRay(playerPosition, state.dungeon))
+    case _ => state
+  }
 
 }
 
@@ -69,7 +80,7 @@ case class HitTransition(sourceBeing: Being, targetBeing: Being, targetCell: Ope
 
 }
 
-case class GameState(dungeon: Dungeon, rng: RNG) {
+case class GameState(dungeon: Dungeon, rng: RNG, revealedPositions: Set[Position]) {
   import Command._
 
   def applyCommand(positionedBeing: PositionedBeing, command: Command): GameTransition = {
@@ -147,14 +158,19 @@ object GameState {
   def start: Rand[GameState] = rng => {
 
     generatedDungeon(rng) match {
-      case (Right(dungeon), newRng) =>
-        (
+      case (Right(dungeon), newRng) => dungeon.positionedPlayer match {
+
+        case Some(PositionedBeing(playerPosition, _)) =>(
           GameState(
             dungeon = dungeon,
-            rng = newRng
+            rng = newRng,
+            revealedPositions = Player.positionsWithinRangeTouchedByPerimeterRay(playerPosition, dungeon)
           ),
           newRng
-        )
+          )
+
+        case None => throw new Exception("Dungeon needs a player")
+      }
       case (Left(error), _) => throw new Exception("Dungeon generation failed")
     }
 

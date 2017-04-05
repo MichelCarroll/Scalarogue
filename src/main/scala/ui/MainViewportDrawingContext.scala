@@ -36,8 +36,8 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D)
       drawingArea.size.height
     )
 
-    val cellsInLineOfSight = Player
-      .positionsWithinRangeTouchedByPerimeterRay(cameraPosition, gameState.dungeon)
+    val cellsInLineOfSight = gameState
+      .revealedPositions
       .intersect(viewport.positions)
       .map(position => position -> gameState.dungeon.cells.get(position))
       .toMap
