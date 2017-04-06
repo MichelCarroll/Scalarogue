@@ -1,8 +1,6 @@
 package game.being
 
-import dungeon.Dungeon
 import game.being.ai.Intelligence
-import game.Command
 import math.Position
 import random.RNG._
 
