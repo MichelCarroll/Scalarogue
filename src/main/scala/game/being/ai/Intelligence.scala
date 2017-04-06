@@ -1,31 +1,29 @@
 package game.being.ai
 
 import dungeon.Dungeon
-import game.being.PositionedBeing
 import game.Command
 import random.RNG._
 import math._
 
 
 trait Intelligence {
-  def nextCommand(positionedBeing: PositionedBeing, dungeon: Dungeon): Rand[(Option[Command], Intelligence)]
+  def nextCommand(fromPosition: Position, dungeon: Dungeon): Rand[Option[Command]]
 }
 
 case object NoIntelligence extends Intelligence {
-  def nextCommand(positionedBeing: PositionedBeing, dungeon: Dungeon) = unit(None, this)
+  def nextCommand(fromPosition: Position, dungeon: Dungeon) = unit(None)
 }
 
 case object RandomIntelligence extends Intelligence {
-  def nextCommand(positionedBeing: PositionedBeing, dungeon: Dungeon) =
-    nextFromSet(Command.all).map(x => (x, this))
+  def nextCommand(fromPosition: Position, dungeon: Dungeon) = nextFromSet(Command.all)
 }
 
 case class SimpleAgroIntelligence(maxRange: Int) extends Intelligence {
-  def nextCommand(positionedBeing: PositionedBeing, dungeon: Dungeon) = {
+  def nextCommand(fromPosition: Position, dungeon: Dungeon) = {
     unit(
       dungeon.positionedPlayer.flatMap(player =>
-        if(player.position.manhattanDistanceTo(positionedBeing.position) <= maxRange)
-          dungeon.bestDirectionTo(positionedBeing.position, player.position).map {
+        if(player.position.manhattanDistanceTo(fromPosition) <= maxRange)
+          dungeon.bestDirectionTo(fromPosition, player.position).map {
             case Direction.Up => Command.Up
             case Direction.Down => Command.Down
             case Direction.Right => Command.Right
@@ -34,7 +32,6 @@ case class SimpleAgroIntelligence(maxRange: Int) extends Intelligence {
         else
           None
       )
-      ,this
     )
   }
 }

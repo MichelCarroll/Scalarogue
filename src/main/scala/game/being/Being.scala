@@ -13,14 +13,6 @@ case class Being(descriptor: BeingDescriptor, body: Body, intelligence: Intellig
     body.struckBy(damage)
       .map { case (newBody, bodyEffectOpt) => (copy(body = newBody), bodyEffectOpt)}
 
-  def withNextCommand(position: Position, dungeon: Dungeon): Rand[(Option[Command], Being)] =
-    intelligence.nextCommand(PositionedBeing(position, this), dungeon).map {
-
-      case (nextCommand, nextIntelligence) =>  {
-        (nextCommand, Being(descriptor, body, nextIntelligence))
-      }
-    }
-
 }
 
 case class PositionedBeing(position: Position, being: Being)

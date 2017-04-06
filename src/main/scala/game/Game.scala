@@ -1,6 +1,6 @@
 package game
 
-import game.being.{PositionedBeing, Spider}
+import game.being.Spider
 import math.Position
 import org.scalajs.dom
 import org.scalajs.dom.ext.Color
@@ -33,9 +33,8 @@ class Game(seed: Int, displayAdapter: GameDisplayAdapter) {
       val t2 = RefreshRevealedPositionsTransition(transition.newState)
       val postAITransition = t2.newState.dungeon.positionedBeings(Spider)
         .foldLeft((transition.notifications, t2.newState))((last, positionedBeing) => {
-          val ((commandOpt, newBeing), newRng) = positionedBeing.being.withNextCommand(positionedBeing.position, last._2.dungeon)(last._2.rng)
-          val updatedDungeon = last._2.dungeon.update(positionedBeing.position, newBeing)
-          val newGameState = GameState(updatedDungeon, newRng, last._2.revealedPositions)
+          val (commandOpt, newRng) = positionedBeing.being.intelligence.nextCommand(positionedBeing.position, last._2.dungeon)(last._2.rng)
+          val newGameState = GameState(last._2.dungeon, newRng, last._2.revealedPositions)
 
           commandOpt match {
             case Some(command) =>
@@ -48,7 +47,7 @@ class Game(seed: Int, displayAdapter: GameDisplayAdapter) {
       gameState = postAITransition._2
       postAITransition._1.foreach(notification => displayAdapter.notificationContext.notify(notification.message, Color.White))
     })
- 
+
     gameState.dungeon.positionedPlayer.foreach(positionedPlayer => redraw(gameState, positionedPlayer.position))
   }
 
