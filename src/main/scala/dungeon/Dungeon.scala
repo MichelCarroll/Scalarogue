@@ -9,10 +9,10 @@ import math._
   */
 case class Dungeon(cells: Map[Position, Cell], area: Area, entrancePosition: Position) extends Navigatable {
 
-  def withUpdatedBeing(positionedBeing: PositionedBeing) =  copy(
-    cells = cells.get(positionedBeing.position) match {
-      case Some(OpenCell(_, structure, items)) => cells.updated(positionedBeing.position, OpenCell(Some(positionedBeing.being), structure, items))
-      case _ => cells
+  def update(position: Position, being: Being) =  copy(
+    cells = cells.get(position) match {
+      case Some(o@OpenCell(_,_,_)) => cells.updated(position, o.copy(being = Some(being)))
+      case _ => throw new Exception("You cannot update a closed cell with a being")
     }
   )
 

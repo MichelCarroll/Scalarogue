@@ -34,7 +34,7 @@ class Game(seed: Int, displayAdapter: GameDisplayAdapter) {
       val postAITransition = t2.newState.dungeon.positionedBeings(Spider)
         .foldLeft((transition.notifications, t2.newState))((last, positionedBeing) => {
           val ((commandOpt, newBeing), newRng) = positionedBeing.being.withNextCommand(positionedBeing.position, last._2.dungeon)(last._2.rng)
-          val updatedDungeon = last._2.dungeon.withUpdatedBeing(PositionedBeing(positionedBeing.position, newBeing))
+          val updatedDungeon = last._2.dungeon.update(positionedBeing.position, newBeing)
           val newGameState = GameState(updatedDungeon, newRng, last._2.revealedPositions)
 
           commandOpt match {
@@ -48,7 +48,7 @@ class Game(seed: Int, displayAdapter: GameDisplayAdapter) {
       gameState = postAITransition._2
       postAITransition._1.foreach(notification => displayAdapter.notificationContext.notify(notification.message, Color.White))
     })
-
+ 
     gameState.dungeon.positionedPlayer.foreach(positionedPlayer => redraw(gameState, positionedPlayer.position))
   }
 
