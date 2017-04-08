@@ -21,9 +21,9 @@ case object RandomIntelligence extends Intelligence {
 case class SimpleAgroIntelligence(maxRange: Int) extends Intelligence {
   def nextCommand(viewpoint: Position, dungeon: Dungeon) = {
     unit(
-      dungeon.positionedPlayer.flatMap(player =>
-        if(player.position.manhattanDistanceTo(viewpoint) <= maxRange)
-          dungeon.bestDirectionTo(viewpoint, player.position).map {
+      dungeon.playerPosition.flatMap(position =>
+        if(position.manhattanDistanceTo(viewpoint) <= maxRange)
+          dungeon.bestDirectionTo(viewpoint, position).map {
             case Direction.Up => Command.Up
             case Direction.Down => Command.Down
             case Direction.Right => Command.Right

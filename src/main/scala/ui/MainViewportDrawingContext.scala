@@ -133,12 +133,12 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D)
     }
 
     def drawPathToClosestSpider() = {
-      gameState.dungeon.positionedBeings(Spider) match {
-        case spiders if spiders.isEmpty => None
-        case spiders =>
+      gameState.dungeon.beingOfTypePositions(Spider) match {
+        case spiderPositions if spiderPositions.isEmpty => None
+        case spiderPositions =>
           gameState.dungeon.bestDirectionTo(
             cameraPosition,
-            spiders.map(_.position).minBy(_.manhattanDistanceTo(cameraPosition))
+            spiderPositions.minBy(_.manhattanDistanceTo(cameraPosition))
           ).map(cameraPosition.towards(_, 1))
       }
     } match {

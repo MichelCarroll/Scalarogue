@@ -5,7 +5,7 @@ import dungeon.{Cell, Dungeon, OpenCell}
 import dungeon.generation.DungeonGenerator
 import dungeon.generation.DungeonGenerator.GenerationError
 import dungeon.generation.floorplan.{BSPTree, Floorplan, RandomBSPTreeParameters}
-import game.being.{Being, Player, PositionedBeing}
+import game.being.{Being, Player}
 import math.{Position, Size}
 import primitives.Ratio
 import random.RNG
@@ -37,9 +37,9 @@ case class RefreshRevealedPositionsTransition(state: GameState) extends GameTran
 
   def notifications = List()
 
-  def newState = state.dungeon.positionedPlayer match {
-    case Some(PositionedBeing(playerPosition,_)) =>
-      state.copy(revealedPositions = state.revealedPositions ++ Player.positionsWithinRangeTouchedByPerimeterRay(playerPosition, state.dungeon))
+  def newState = state.dungeon.playerPosition match {
+    case Some(position) =>
+      state.copy(revealedPositions = state.revealedPositions ++ Player.positionsWithinRangeTouchedByPerimeterRay(position, state.dungeon))
     case _ => state
   }
 
@@ -83,30 +83,34 @@ case class HitTransition(sourceBeing: Being, targetBeing: Being, targetCell: Ope
 case class GameState(dungeon: Dungeon, rng: RNG, revealedPositions: Set[Position]) {
   import Command._
 
-  def applyCommand(positionedBeing: PositionedBeing, command: Command): GameTransition = {
+  def applyCommand(sourcePosition: Position, command: Command): GameTransition = {
 
-    def attemptNewPosition(position: Position): GameTransition =
-      dungeon.cells.get(position) match {
+    def attemptNewPosition(sourceBeing: Being, destinationPosition: Position): GameTransition =
+      dungeon.cells.get(destinationPosition) match {
 
         case Some(cell@OpenCell(Some(being: Being), structure, itemsOnGround)) =>
-          HitTransition(positionedBeing.being, being, cell, position, this)
+          HitTransition(sourceBeing, being, cell, destinationPosition, this)
 
         case Some(OpenCell(None, Some(openable: Openable), items)) =>
-          OpenTransition(positionedBeing.being, openable, OpenCell(None, Some(openable.opened), items), position, this)
+          OpenTransition(sourceBeing, openable, OpenCell(None, Some(openable.opened), items), destinationPosition, this)
 
         case Some(cell@OpenCell(None, structure, items)) if cell.passable =>
-          MoveTransition(positionedBeing.being, positionedBeing.position, cell, position, OpenCell(Some(positionedBeing.being), structure, Set()), items, this)
+          MoveTransition(sourceBeing, sourcePosition, cell, destinationPosition, OpenCell(Some(sourceBeing), structure, Set()), items, this)
 
         case _ =>
           IdentityTransition(this)
 
       }
 
-    command match {
-      case Up => attemptNewPosition(positionedBeing.position.up(1))
-      case Down => attemptNewPosition(positionedBeing.position.down(1))
-      case Left => attemptNewPosition(positionedBeing.position.left(1))
-      case Right => attemptNewPosition(positionedBeing.position.right(1))
+
+    dungeon.cells.get(sourcePosition) match {
+      case Some(OpenCell(Some(being@Being(_,_,_)), _, _)) => command match {
+          case Up => attemptNewPosition(being, sourcePosition.up(1))
+          case Down => attemptNewPosition(being, sourcePosition.down(1))
+          case Left => attemptNewPosition(being, sourcePosition.left(1))
+          case Right => attemptNewPosition(being, sourcePosition.right(1))
+        }
+      case _ => throw new Exception("No being in this tile")
     }
   }
 
@@ -158,13 +162,13 @@ object GameState {
   def start: Rand[GameState] = rng => {
 
     generatedDungeon(rng) match {
-      case (Right(dungeon), newRng) => dungeon.positionedPlayer match {
+      case (Right(dungeon), newRng) => dungeon.playerPosition match {
 
-        case Some(PositionedBeing(playerPosition, _)) =>(
+        case Some(position) =>(
           GameState(
             dungeon = dungeon,
             rng = newRng,
-            revealedPositions = Player.positionsWithinRangeTouchedByPerimeterRay(playerPosition, dungeon)
+            revealedPositions = Player.positionsWithinRangeTouchedByPerimeterRay(position, dungeon)
           ),
           newRng
           )

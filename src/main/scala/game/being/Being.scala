@@ -12,5 +12,3 @@ case class Being(descriptor: BeingDescriptor, body: Body, intelligence: Intellig
       .map { case (newBody, bodyEffectOpt) => (copy(body = newBody), bodyEffectOpt)}
 
 }
-
-case class PositionedBeing(position: Position, being: Being)

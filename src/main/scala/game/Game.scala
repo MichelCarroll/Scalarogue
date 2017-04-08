@@ -1,5 +1,6 @@
 package game
 
+import dungeon.OpenCell
 import game.being.Spider
 import math.Position
 import org.scalajs.dom
@@ -19,7 +20,7 @@ class Game(seed: Int, displayAdapter: GameDisplayAdapter) {
   private var gameState = initialGameState
 
   displayAdapter.mainViewportDrawingContext.ready.map(_ =>
-    gameState.dungeon.positionedPlayer.foreach(positionedPlayer => redraw(gameState, positionedPlayer.position))
+    gameState.dungeon.playerPosition.foreach(position => redraw(gameState, position))
   )
 
   dom.document.onkeydown = (e: dom.KeyboardEvent) => {
@@ -28,27 +29,30 @@ class Game(seed: Int, displayAdapter: GameDisplayAdapter) {
 
   def executeTurn(playerCommand: Command) = {
 
-    gameState.dungeon.positionedPlayer.foreach(positionedPlayer => {
-      val transition = gameState.applyCommand(positionedPlayer, playerCommand)
+    gameState.dungeon.playerPosition.foreach(playerPosition => {
+      val transition = gameState.applyCommand(playerPosition, playerCommand)
       val t2 = RefreshRevealedPositionsTransition(transition.newState)
-      val postAITransition = t2.newState.dungeon.positionedBeings(Spider)
-        .foldLeft((transition.notifications, t2.newState))((last, positionedBeing) => {
-          val (commandOpt, newRng) = positionedBeing.being.intelligence.nextCommand(positionedBeing.position, last._2.dungeon)(last._2.rng)
-          val newGameState = GameState(last._2.dungeon, newRng, last._2.revealedPositions)
+      val postAITransition = t2.newState.dungeon
+        .beingOfTypePositions(Spider)
+        .foldLeft((transition.notifications, t2.newState))((last, beingPosition) => last._2.dungeon.cells(beingPosition) match {
+          case OpenCell(Some(being), _, _) =>
+            val (commandOpt, newRng) = being.intelligence.nextCommand(beingPosition, last._2.dungeon)(last._2.rng)
+            val newGameState = GameState(last._2.dungeon, newRng, last._2.revealedPositions)
 
-          commandOpt match {
-            case Some(command) =>
-              val transition = newGameState.applyCommand(positionedBeing, command)
-              (last._1 ++ transition.notifications, transition.newState)
-            case None =>
-              (last._1, newGameState)
-          }
+            commandOpt match {
+              case Some(command) =>
+                val transition = newGameState.applyCommand(beingPosition, command)
+                (last._1 ++ transition.notifications, transition.newState)
+              case None =>
+                (last._1, newGameState)
+            }
+          case _ => last
         })
       gameState = postAITransition._2
       postAITransition._1.foreach(notification => displayAdapter.notificationContext.notify(notification.message, Color.White))
     })
 
-    gameState.dungeon.positionedPlayer.foreach(positionedPlayer => redraw(gameState, positionedPlayer.position))
+    gameState.dungeon.playerPosition.foreach(position => redraw(gameState, position))
   }
 
   private def redraw(gameState: GameState, cameraPosition: Position): Unit = {

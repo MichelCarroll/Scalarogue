@@ -1,7 +1,7 @@
 package dungeon
 
 import dungeon.pathfinding.Navigatable
-import game.being.{Being, BeingDescriptor, Player, PositionedBeing}
+import game.being.{Being, BeingDescriptor, Player}
 import math._
 
 /**
@@ -27,18 +27,18 @@ case class Dungeon(cells: Map[Position, Cell], area: Area, entrancePosition: Pos
     }
   )
 
-  def positionedPlayer: Option[PositionedBeing] = cells
+  def playerPosition: Option[Position] = cells
     .map {
-      case (position, OpenCell(Some(player@Being(Player, _, _)), _, _)) => Some(PositionedBeing(position, player))
+      case (position, OpenCell(Some(Being(Player, _, _)), _, _)) => Some(position)
       case _ => None
     }
     .find(_.isDefined)
     .flatten
 
 
-  def positionedBeings(target: BeingDescriptor) = cells
+  def beingOfTypePositions(target: BeingDescriptor) = cells
     .flatMap {
-      case (position, OpenCell(Some(being@Being(descriptor, _, _)), _, _)) if descriptor == target => Some(PositionedBeing(position, being))
+      case (position, OpenCell(Some(being@Being(descriptor, _, _)), _, _)) if descriptor == target => Some(position)
       case _ => None
     }
     .toSet
