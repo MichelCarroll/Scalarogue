@@ -119,7 +119,7 @@ object Floorplan {
         .groupBy(_._1)
         .map {
           case (_, tileMappings) => tileMappings
-            .find(tileMapping => tileMapping._2.isRoomTile) //put priority over room tiles
+            .find(tileMapping => tileMapping._2 == RoomTile) //put priority over room tiles
             .getOrElse(tileMappings.head)
         } ++ topology.rooms.flatMap(_.area.positions.map(_ -> RoomTile)).toMap
     }
@@ -129,7 +129,7 @@ object Floorplan {
       withoutDoors
         .map {
           case (position, CorridorTile) =>
-            if (position.sides.exists(withoutDoors.get(_).exists(_.isRoomTile)))
+            if (position.sides.exists(withoutDoors.get(_).exists(_ == RoomTile)))
               position -> DoorTile
             else
               position -> CorridorTile

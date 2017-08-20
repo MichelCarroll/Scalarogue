@@ -15,7 +15,7 @@ object DungeonGenerator {
   case object NeedAtLeastTwoRoomTiles extends GenerationError
 
   def generate(floorplan: Floorplan): Rand[Either[GenerationError, Dungeon]] = {
-    val roomTiles = floorplan.positionedTiles.filter(_._2.isRoomTile).toSet
+    val roomTiles = floorplan.positionedTiles.filter(_._2 == RoomTile).toSet
 
     if(roomTiles.size < 2)
       unit(Left(NeedAtLeastTwoRoomTiles))

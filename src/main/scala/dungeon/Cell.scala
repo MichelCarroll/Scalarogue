@@ -1,6 +1,6 @@
 package dungeon
 
-import game.{Blocking, Item, Structure}
+import game.{Blocking, Item, Opaque, Structure}
 import game.being.Being
 /**
   * Created by MichelCarroll on 3/28/2017.
@@ -22,7 +22,10 @@ case class OpenCell(
     case _: Blocking => true
     case _ => false
   }
-  def opaque = structure.exists(_.opaque)
+  def opaque = structure.exists {
+    case _: Opaque => true
+    case _ => false
+  }
 }
 
 /**
