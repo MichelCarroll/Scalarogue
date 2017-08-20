@@ -1,7 +1,7 @@
 package game
 
 
-import game.being.{BodyEffect, BodyPartDamaged, BodyPartDestroyed, Damage}
+import game.being.{BodyEffect, BodyDamaged, BodyDestroyed, Damage}
 
 
 trait Named { self =>
@@ -52,10 +52,10 @@ case class TargetHit(by: Describable, target: Describable, bodyEffectOpt: Option
   val prefixMessage = s"${by.subject} $verb ${target.subject}"
 
   val message = bodyEffectOpt match {
-    case Some(BodyPartDamaged(bodyPart, damage)) =>
-      s"$prefixMessage, ${bodyPart.ownedBy(target).subjectUsingPronouns} received ${damage.value} damage"
-    case Some(BodyPartDestroyed(bodyPart, damage)) =>
-      s"$prefixMessage, ${bodyPart.ownedBy(target).subjectUsingPronouns} received ${damage.value} damage, and it got destroyed!"
+    case Some(BodyDamaged(damage)) =>
+      s"$prefixMessage, ${target.subjectUsingPronouns} received ${damage.value} damage"
+    case Some(BodyDestroyed(damage)) =>
+      s"$prefixMessage, ${target.subjectUsingPronouns} received ${damage.value} damage, and it got destroyed!"
     case None =>
       s"$prefixMessage, and has no effect"
   }
