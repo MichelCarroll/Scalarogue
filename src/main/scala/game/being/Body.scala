@@ -41,6 +41,7 @@ class SimpleHumanoidGaussianBodyFactory(meanHealth: Int, variation: Int) extends
 sealed trait BodyEffect
 case class BodyDamaged(damage: Damage) extends BodyEffect
 case class BodyDestroyed(damage: Damage) extends BodyEffect
+case class BodyFellUnconscious(damage: Damage) extends BodyEffect
 
 case class HumanoidBody(fullHealth: Health, health: Health) extends Body {
 
@@ -50,8 +51,10 @@ case class HumanoidBody(fullHealth: Health, health: Health) extends Body {
 
   def struckBy(damage: Damage) = {
     val newBody = this.copy(health = health - damage)
-    if (newBody.destroyed)
-      unit(newBody, Some(BodyDamaged(damage)))
+    if (!this.destroyed && newBody.destroyed)
+      unit(newBody, Some(BodyDestroyed(damage)))
+    else if (!this.destroyed && newBody.destroyed)
+      unit(newBody, Some(BodyFellUnconscious(damage)))
     else
       unit(newBody, Some(BodyDamaged(damage)))
   }

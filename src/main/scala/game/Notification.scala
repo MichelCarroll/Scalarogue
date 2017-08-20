@@ -1,7 +1,7 @@
 package game
 
 
-import game.being.{BodyEffect, BodyDamaged, BodyDestroyed, Damage}
+import game.being.{BodyEffect, BodyDamaged, BodyDestroyed, BodyFellUnconscious, Damage}
 
 
 trait Named { self =>
@@ -56,6 +56,8 @@ case class TargetHit(by: Describable, target: Describable, bodyEffectOpt: Option
       s"$prefixMessage, ${target.subjectUsingPronouns} received ${damage.value} damage"
     case Some(BodyDestroyed(damage)) =>
       s"$prefixMessage, ${target.subjectUsingPronouns} received ${damage.value} damage, and it got destroyed!"
+    case Some(BodyFellUnconscious(damage)) =>
+      s"$prefixMessage, ${target.subjectUsingPronouns} received ${damage.value} damage, and fell unconscious!"
     case None =>
       s"$prefixMessage, and has no effect"
   }
