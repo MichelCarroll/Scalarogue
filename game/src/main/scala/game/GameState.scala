@@ -105,6 +105,15 @@ case class GameState(dungeon: Dungeon, rng: RNG, revealedPositions: Set[Position
           IdentityTransition(this)
 
       }
+//
+//    def attemptUseItem(sourcePosition: Position, itemSlug: ItemSlug): GameTransition = {
+//      dungeon.cells.get(sourcePosition) match {
+//        case Some(OpenCell(Some(being@Being(_,_,_,itemBag)), _, _)) =>
+//          itemBag.items.find { case (item, amount) => item.slug == itemSlug && amount > 0 } match {
+//
+//          }
+//      }
+//    }
 
     dungeon.cells.get(sourcePosition) match {
       case Some(OpenCell(Some(being@Being(_,_,_,_)), _, _)) => command match {
@@ -112,10 +121,12 @@ case class GameState(dungeon: Dungeon, rng: RNG, revealedPositions: Set[Position
           case Down => attemptNewPosition(being, sourcePosition.down(1))
           case Left => attemptNewPosition(being, sourcePosition.left(1))
           case Right => attemptNewPosition(being, sourcePosition.right(1))
+          case UseItem(itemSlug) => IdentityTransition(this)
         }
       case _ => throw new Exception("No being in this tile")
     }
   }
+
 
 }
 
@@ -129,6 +140,7 @@ object Command {
   case object Down extends Command
   case object Right extends Command
   case object Left extends Command
+  case class UseItem(itemSlug: ItemSlug) extends Command
 
   def fromKeyCode(keyCode: Int): Option[Command] = keyCode match {
     case 37 => Some(Command.Left)

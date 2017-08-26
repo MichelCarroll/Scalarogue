@@ -2,7 +2,9 @@ import dungeon.generation.floorplan.{BSPTree, Floorplan, RandomBSPTreeParameters
 import ui.{DebugDrawingContext, GameDisplayAdapter}
 import math.Size
 import dungeon.generation.DungeonGenerator
-import game.{Command, Game}
+import game.Command.UseItem
+import game.{Command, Game, ItemSlug}
+
 import scala.scalajs.js
 import org.scalajs.dom
 import org.scalajs.dom.{CanvasRenderingContext2D, html}
@@ -11,12 +13,20 @@ import random.SimpleRNG
 
 import scala.scalajs.js.annotation.JSExport
 
+@JSExport
+class GameHooks(game: Game) {
+
+  def useItem(itemSlugValue: String): Unit = {
+    game.executeTurn(UseItem(ItemSlug(itemSlugValue)))
+  }
+
+}
 
 @JSExport
 object Main {
 
   @JSExport
-  def main(options: js.Dictionary[Any]): Unit = {
+  def main(options: js.Dictionary[Any]): GameHooks = {
 
     val seed = options("seed").toString.toLong
     val viewportCanvas = options("viewport").asInstanceOf[html.Canvas]
@@ -32,6 +42,7 @@ object Main {
       Command.fromKeyCode(e.keyCode).foreach(game.executeTurn)
     }
 
+    new GameHooks(game)
   }
 
   @JSExport

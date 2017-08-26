@@ -1,9 +1,12 @@
 package game
 
+case class ItemSlug(value: String) extends AnyVal
+
 /**
   * Created by MichelCarroll on 3/28/2017.
   */
 sealed trait Item {
+  val slug: ItemSlug
   val name: String
   val capitalizedName: String
 }
@@ -12,11 +15,13 @@ sealed trait Item {
   * Created by MichelCarroll on 3/28/2017.
   */
 case object Gold extends Item {
+  val slug = ItemSlug("gold")
   val name = "gold"
   val capitalizedName = "Gold"
 }
 
 case object HealthPotion extends Item {
+  val slug = ItemSlug("health-potion")
   val name = "health potion"
   val capitalizedName = "Health Potion"
 }
