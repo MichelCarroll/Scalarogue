@@ -29,16 +29,18 @@ class ImageRepository(canvasContext: dom.CanvasRenderingContext2D) {
     }
   }
 
-  val alphabet = imageWithSrc("images/alphabet.png", ImageSourceSize(1800, 50))
-  val closed_door = imageWithSrc("images/closed_door.png", ImageSourceSize(333, 334))
-  val open_door = imageWithSrc("images/open_door.png", ImageSourceSize(313, 312))
-  val wall = imageWithSrc("images/darkness.png", ImageSourceSize(333, 305))
-  val floor = imageWithSrc("images/floor.png", ImageSourceSize(320, 320))
-  val upstairs = imageWithSrc("images/upstairs.png", ImageSourceSize(370, 370))
-  val downstairs = imageWithSrc("images/downstairs.png", ImageSourceSize(400, 400))
-  val nugget = imageWithSrc("images/nugget.png", ImageSourceSize(607, 600))
-  val spider = imageWithSrc("images/spider.png", ImageSourceSize(596, 594))
-  val gold = imageWithSrc("images/gold.png", ImageSourceSize(600, 600))
+  val imageDirectory = "public/images/"
+
+  val alphabet = imageWithSrc(s"${imageDirectory}alphabet.png", ImageSourceSize(1800, 50))
+  val closed_door = imageWithSrc(s"${imageDirectory}closed_door.png", ImageSourceSize(333, 334))
+  val open_door = imageWithSrc(s"${imageDirectory}open_door.png", ImageSourceSize(313, 312))
+  val wall = imageWithSrc(s"${imageDirectory}darkness.png", ImageSourceSize(333, 305))
+  val floor = imageWithSrc(s"${imageDirectory}floor.png", ImageSourceSize(320, 320))
+  val upstairs = imageWithSrc(s"${imageDirectory}upstairs.png", ImageSourceSize(370, 370))
+  val downstairs = imageWithSrc(s"${imageDirectory}downstairs.png", ImageSourceSize(400, 400))
+  val nugget = imageWithSrc(s"${imageDirectory}nugget.png", ImageSourceSize(607, 600))
+  val spider = imageWithSrc(s"${imageDirectory}spider.png", ImageSourceSize(596, 594))
+  val gold = imageWithSrc(s"${imageDirectory}gold.png", ImageSourceSize(600, 600))
 
 
   val loaded: Future[Unit] = Future.sequence(Set(

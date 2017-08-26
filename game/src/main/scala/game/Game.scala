@@ -12,7 +12,7 @@ import ui.GameDisplayAdapter
 /**
   * Created by MichelCarroll on 3/12/2017.
   */
-class Game(seed: Int, displayAdapter: GameDisplayAdapter) {
+class Game(seed: Long, displayAdapter: GameDisplayAdapter) {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -27,6 +27,8 @@ class Game(seed: Int, displayAdapter: GameDisplayAdapter) {
     Command.fromKeyCode(e.keyCode).foreach(executeTurn)
   }
 
+  displayAdapter.updateState(gameState)
+
   def executeTurn(playerCommand: Command) = {
 
     gameState.dungeon.playerPosition.foreach(playerPosition => {
@@ -34,25 +36,25 @@ class Game(seed: Int, displayAdapter: GameDisplayAdapter) {
       val t2 = RefreshRevealedPositionsTransition(transition.newState)
       val postAITransition = t2.newState.dungeon
         .beingOfTypePositions(Spider)
-        .foldLeft((transition.notifications, t2.newState))((last, beingPosition) => last._2.dungeon.cells(beingPosition) match {
+        .foldLeft(t2.newState)((last, beingPosition) => last.dungeon.cells(beingPosition) match {
           case OpenCell(Some(being), _, _) =>
-            val (commandOpt, newRng) = being.intelligence.nextCommand(beingPosition, last._2.dungeon)(last._2.rng)
-            val newGameState = GameState(last._2.dungeon, newRng, last._2.revealedPositions)
+            val (commandOpt, newRng) = being.intelligence.nextCommand(beingPosition, last.dungeon)(last.rng)
+            val newGameState = GameState(last.dungeon, newRng, last.revealedPositions, last.notificationHistory)
 
             commandOpt match {
               case Some(command) =>
                 val transition = newGameState.applyCommand(beingPosition, command)
-                (last._1 ++ transition.notifications, transition.newState)
+                transition.newState
               case None =>
-                (last._1, newGameState)
+                newGameState
             }
           case _ => last
         })
-      gameState = postAITransition._2
-      postAITransition._1.foreach(notification => displayAdapter.notificationContext.notify(notification.message, Color.White))
+      gameState = postAITransition
     })
 
     gameState.dungeon.playerPosition.foreach(position => redraw(gameState, position))
+    displayAdapter.updateState(gameState)
   }
 
   private def redraw(gameState: GameState, cameraPosition: Position): Unit = {

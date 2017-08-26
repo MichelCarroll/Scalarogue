@@ -15,5 +15,5 @@ case class Damage(value: Int) {
 case class Health(value: Int) extends AnyVal {
   def +(x: Health) = Health(value + x.value)
   def -(x: Damage) = Health(value - x.value)
-  def /(x: Health) = value / x.value
+  def /(x: Health): Double = value.toDouble / x.value.toDouble
 }

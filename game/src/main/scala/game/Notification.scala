@@ -55,7 +55,7 @@ case class TargetHit(by: Describable, target: Describable, bodyEffectOpt: Option
     case Some(BodyDamaged(damage)) =>
       s"$prefixMessage, ${target.subjectUsingPronouns} received ${damage.value} damage"
     case Some(BodyDestroyed(damage)) =>
-      s"$prefixMessage, ${target.subjectUsingPronouns} received ${damage.value} damage, and it got destroyed!"
+      s"$prefixMessage, ${target.subjectUsingPronouns} received ${damage.value} damage, and got destroyed!"
     case Some(BodyFellUnconscious(damage)) =>
       s"$prefixMessage, ${target.subjectUsingPronouns} received ${damage.value} damage, and fell unconscious!"
     case None =>

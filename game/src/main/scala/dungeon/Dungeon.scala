@@ -35,6 +35,13 @@ case class Dungeon(cells: Map[Position, Cell], area: Area, entrancePosition: Pos
     .find(_.isDefined)
     .flatten
 
+  def player: Option[Being] = cells
+    .map {
+      case (position, OpenCell(Some(being@Being(Player, _, _)), _, _)) => Some(being)
+      case _ => None
+    }
+    .find(_.isDefined)
+    .flatten
 
   def beingOfTypePositions(target: BeingDescriptor) = cells
     .flatMap {

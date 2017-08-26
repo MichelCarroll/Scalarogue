@@ -1,0 +1,81 @@
+
+
+@import 'reset';
+
+
+
+body {
+  margin: 0px;
+}
+
+.section {
+  display: block;
+  float: left;
+  background: black;
+}
+
+.stats-section {
+  padding: 10px;
+}
+
+.stats-section ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.stats-section li {
+  color: white;
+  height: 40px;
+  border-bottom: 2px solid white;
+}
+
+.stats-section .stat-name {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 10px;
+}
+
+.stats-section .stat-bar-outer {
+  width: 200px;
+  height: 20px;
+  border: 2px white solid;
+  display: inline-block;
+  position: relative;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.stats-section .stat-bar-inner {
+  height: 20px;
+  position: absolute;
+}
+
+.stats-section .stat-bar-annotation {
+  display: inline-block;
+  top: 50%;
+  left: 50%;
+  position: relative;
+  transform: translateX(-50%) translateY(-50%);
+}
+
+.message-container {
+  float: left;
+  clear: left;
+  width: 600px;
+  height: 200px;
+  background: black;
+  color: white;
+  overflow-y: scroll;
+}
+
+.messages {
+  margin: 0; 
+  padding: 10px 30px; 
+  list-style-type: square; 
+  font-family: monospace;
+}
+
+.messages li {
+  color: white;
+}

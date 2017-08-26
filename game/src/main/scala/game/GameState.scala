@@ -14,28 +14,26 @@ import random.RNG._
 
 trait GameTransition {
   def newState: GameState
-  def notifications: List[Notification]
 }
 
 case class IdentityTransition(state: GameState) extends GameTransition {
   def newState = state
-  def notifications = List()
 }
 
 case class MoveTransition(subject: Being, oldCellPosition: Position, oldCell: OpenCell, newCellPosition: Position, newCell: OpenCell, items: Set[Item], state: GameState) extends GameTransition  {
 
-  def notifications = items.map(item => TargetTaken(subject.descriptor, item)).toList
+  val notifications = items.map(item => TargetTaken(subject.descriptor, item)).toList
 
-  def newState = state.copy(dungeon = state.dungeon
-    .withRemovedBeing(oldCellPosition)
-    .withUpdatedCell(newCellPosition, newCell)
+  def newState = state.copy(
+    dungeon = state.dungeon
+      .withRemovedBeing(oldCellPosition)
+      .withUpdatedCell(newCellPosition, newCell),
+    notificationHistory = notifications ++: state.notificationHistory
   )
 
 }
 
 case class RefreshRevealedPositionsTransition(state: GameState) extends GameTransition {
-
-  def notifications = List()
 
   def newState = state.dungeon.playerPosition match {
     case Some(position) =>
@@ -46,8 +44,10 @@ case class RefreshRevealedPositionsTransition(state: GameState) extends GameTran
 }
 
 case class OpenTransition(subject: Being, openable: Openable, newCell: Cell, position: Position, state: GameState) extends GameTransition  {
-  def notifications = List(TargetOpened(subject.descriptor, openable))
-  def newState = state.copy(dungeon = state.dungeon.withUpdatedCell(position, newCell))
+  def newState = state.copy(
+    dungeon = state.dungeon.withUpdatedCell(position, newCell),
+    notificationHistory = TargetOpened(subject.descriptor, openable) :: state.notificationHistory
+  )
 }
 
 case class HitTransition(sourceBeing: Being, targetBeing: Being, targetCell: OpenCell, targetBeingPosition: Position, state: GameState) extends GameTransition  {
@@ -65,7 +65,7 @@ case class HitTransition(sourceBeing: Being, targetBeing: Being, targetCell: Ope
       }
     else List()
 
-  def notifications = hitNotification :: deathNotifications
+  val notifications = hitNotification :: deathNotifications
 
   def newState = {
     val updatedDungeon = if(newBeing.body.dead)
@@ -75,12 +75,12 @@ case class HitTransition(sourceBeing: Being, targetBeing: Being, targetCell: Ope
     else
       state.dungeon.withUpdatedCell(targetBeingPosition, OpenCell(Some(newBeing), targetCell.structure, targetCell.item))
 
-    state.copy(dungeon = updatedDungeon, rng = newRng)
+    state.copy(dungeon = updatedDungeon, rng = newRng, notificationHistory = notifications ++: state.notificationHistory)
   }
 
 }
 
-case class GameState(dungeon: Dungeon, rng: RNG, revealedPositions: Set[Position]) {
+case class GameState(dungeon: Dungeon, rng: RNG, revealedPositions: Set[Position], notificationHistory: List[Notification]) {
   import Command._
 
   def applyCommand(sourcePosition: Position, command: Command): GameTransition = {
@@ -168,7 +168,8 @@ object GameState {
           GameState(
             dungeon = dungeon,
             rng = newRng,
-            revealedPositions = Player.positionsWithinRangeTouchedByPerimeterRay(position, dungeon)
+            revealedPositions = Player.positionsWithinRangeTouchedByPerimeterRay(position, dungeon),
+            notificationHistory = List()
           ),
           newRng
           )

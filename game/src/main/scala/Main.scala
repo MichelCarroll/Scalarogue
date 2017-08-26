@@ -1,8 +1,9 @@
 import dungeon.generation.floorplan.{BSPTree, Floorplan, RandomBSPTreeParameters}
 import ui.{DebugDrawingContext, GameDisplayAdapter}
+import math.Size
 import dungeon.generation.DungeonGenerator
 import game.{Command, Game}
-import math.Size
+import scala.scalajs.js
 import org.scalajs.dom
 import org.scalajs.dom.{CanvasRenderingContext2D, html}
 import primitives.Ratio
@@ -15,11 +16,16 @@ import scala.scalajs.js.annotation.JSExport
 object Main {
 
   @JSExport
-  def main(seed: Double, viewportCanvas: html.Canvas, minimapCanvas: html.Canvas, messagesList: html.UList, messageContainer: html.Div): Unit = {
+  def main(options: js.Dictionary[Any]): Unit = {
+
+    val seed = options("seed").toString.toLong
+    val viewportCanvas = options("viewport").asInstanceOf[html.Canvas]
+    val minimapCanvas = options("minimap").asInstanceOf[html.Canvas]
+    val onUpdateState = options("onUpdateState").asInstanceOf[js.Function1[Any, Any]]
 
     val game = new Game(
-      seed = seed.toInt,
-      displayAdapter = GameDisplayAdapter(viewportCanvas, minimapCanvas, messagesList, messageContainer)
+      seed = seed,
+      displayAdapter = GameDisplayAdapter(viewportCanvas, minimapCanvas, onUpdateState)
     )
 
     dom.document.onkeydown = (e: dom.KeyboardEvent) => {
