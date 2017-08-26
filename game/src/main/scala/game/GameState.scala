@@ -20,9 +20,14 @@ case class IdentityTransition(state: GameState) extends GameTransition {
   def newState = state
 }
 
-case class MoveTransition(subject: Being, oldCellPosition: Position, oldCell: OpenCell, newCellPosition: Position, newCell: OpenCell, items: Set[Item], state: GameState) extends GameTransition  {
+case class MoveTransition(subject: Being, oldCellPosition: Position, newCellPosition: Position, newCellBeing: Being, newCellItems: Set[Item], newCellStructure: Option[Structure], state: GameState) extends GameTransition  {
 
-  val notifications = items.map(item => TargetTaken(subject.descriptor, item)).toList
+  val notifications = newCellItems.map(item => TargetTaken(subject.descriptor, item)).toList
+  val newCell = OpenCell(
+    being = Some(newCellBeing.copy(items = newCellBeing.items ++ newCellItems)),
+    structure = newCellStructure,
+    item = Set()
+  )
 
   def newState = state.copy(
     dungeon = state.dungeon
@@ -59,10 +64,7 @@ case class HitTransition(sourceBeing: Being, targetBeing: Being, targetCell: Ope
   def hitNotification = TargetHit(sourceBeing.descriptor, newBeing.descriptor, notificationOpt)
   def deathNotifications =
     if(newBeing.body.dead)
-      newBeing.descriptor.drop match {
-        case Some(item) => List(TargetDies(newBeing.descriptor), TargetDropsItem(targetBeing.descriptor, item))
-        case None => List(TargetDies(newBeing.descriptor))
-      }
+      TargetDies(newBeing.descriptor) :: newBeing.items.map(item => TargetDropsItem(targetBeing.descriptor, item)).toList
     else List()
 
   val notifications = hitNotification :: deathNotifications
@@ -70,7 +72,7 @@ case class HitTransition(sourceBeing: Being, targetBeing: Being, targetCell: Ope
   def newState = {
     val updatedDungeon = if(newBeing.body.dead)
       state.dungeon.withUpdatedCell(targetBeingPosition,
-        OpenCell(None, targetCell.structure, newBeing.descriptor.drop.map(targetCell.item + _).getOrElse(targetCell.item))
+        OpenCell(None, targetCell.structure, targetCell.item ++ newBeing.items)
       )
     else
       state.dungeon.withUpdatedCell(targetBeingPosition, OpenCell(Some(newBeing), targetCell.structure, targetCell.item))
@@ -95,16 +97,15 @@ case class GameState(dungeon: Dungeon, rng: RNG, revealedPositions: Set[Position
           OpenTransition(sourceBeing, openable, OpenCell(None, Some(openable.opened), items), destinationPosition, this)
 
         case Some(cell@OpenCell(None, structure, items)) if cell.passable =>
-          MoveTransition(sourceBeing, sourcePosition, cell, destinationPosition, OpenCell(Some(sourceBeing), structure, Set()), items, this)
+          MoveTransition(sourceBeing, sourcePosition, destinationPosition, sourceBeing, items, structure, this)
 
         case _ =>
           IdentityTransition(this)
 
       }
 
-
     dungeon.cells.get(sourcePosition) match {
-      case Some(OpenCell(Some(being@Being(_,_,_)), _, _)) => command match {
+      case Some(OpenCell(Some(being@Being(_,_,_,_)), _, _)) => command match {
           case Up => attemptNewPosition(being, sourcePosition.up(1))
           case Down => attemptNewPosition(being, sourcePosition.down(1))
           case Left => attemptNewPosition(being, sourcePosition.left(1))

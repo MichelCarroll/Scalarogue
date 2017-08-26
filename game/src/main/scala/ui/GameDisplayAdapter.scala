@@ -29,7 +29,8 @@ case class GameDisplayAdapter(
         "health" -> js.Dictionary(
           "max" -> state.dungeon.player.map(_.body.fullHealth.value).getOrElse(1.0),
           "current" -> state.dungeon.player.map(_.body.health.value).getOrElse(0.0)
-        )
+        ),
+        "gold" -> state.dungeon.player.map(_.goldAmount).getOrElse(0)
       )
     )
     onUpdateState(gameState)

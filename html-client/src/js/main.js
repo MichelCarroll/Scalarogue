@@ -24,20 +24,25 @@ module.exports = class App extends Component {
       return null;
     }
     
-    const healthCurrent = this.state.stats.health.current;
-    const healthMax = this.state.stats.health.max;
-    const healthPerc = healthCurrent / healthMax * 100;
+    const renderBar = (current, max) => {
+      const percentage = current / max * 100;
+      return <div className="bar">
+          <div className="inner" style={{background: 'red', width: percentage + "%"}}></div>
+          <div className="annotation">
+            {current+"/"+max}
+          </div>
+      </div>
+    }
     
     return <div className="section stats-section">
         <ul id="stats-list">
             <li>
-                <div className="stat-name">Health</div>
-                <div className="stat-bar-outer">
-                    <div className="stat-bar-inner" style={{background: 'red', width: healthPerc + "%"}}></div>
-                    <div className="stat-bar-annotation">
-                      {healthCurrent+"/"+healthMax}
-                    </div>
-                </div>
+                <div className="name">Health</div>
+                {renderBar(this.state.stats.health.current, this.state.stats.health.max)}
+            </li>
+            <li>
+                <div className="name">Gold</div>
+                <div className="value">{this.state.stats.gold}</div>
             </li>
         </ul>
     </div>

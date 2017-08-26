@@ -16,7 +16,7 @@ trait BeingDescriptor extends Describable {
     bodyFactory.randomNewBody
       .combine(intelligenceFactory.randomNewIntelligence)
       .map {
-        case (body, intelligence) => Being(this, body, intelligence)
+        case (body, intelligence) => Being(this, body, intelligence, drop.map(item => Set(item)).getOrElse(Set()))
       }
 }
 

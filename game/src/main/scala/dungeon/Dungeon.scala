@@ -29,7 +29,7 @@ case class Dungeon(cells: Map[Position, Cell], area: Area, entrancePosition: Pos
 
   def playerPosition: Option[Position] = cells
     .map {
-      case (position, OpenCell(Some(Being(Player, _, _)), _, _)) => Some(position)
+      case (position, OpenCell(Some(Being(Player, _, _, _)), _, _)) => Some(position)
       case _ => None
     }
     .find(_.isDefined)
@@ -37,7 +37,7 @@ case class Dungeon(cells: Map[Position, Cell], area: Area, entrancePosition: Pos
 
   def player: Option[Being] = cells
     .map {
-      case (position, OpenCell(Some(being@Being(Player, _, _)), _, _)) => Some(being)
+      case (position, OpenCell(Some(being@Being(Player, _, _, _)), _, _)) => Some(being)
       case _ => None
     }
     .find(_.isDefined)
@@ -45,7 +45,7 @@ case class Dungeon(cells: Map[Position, Cell], area: Area, entrancePosition: Pos
 
   def beingOfTypePositions(target: BeingDescriptor) = cells
     .flatMap {
-      case (position, OpenCell(Some(being@Being(descriptor, _, _)), _, _)) if descriptor == target => Some(position)
+      case (position, OpenCell(Some(being@Being(descriptor, _, _, _)), _, _)) if descriptor == target => Some(position)
       case _ => None
     }
     .toSet
