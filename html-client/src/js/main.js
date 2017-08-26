@@ -34,16 +34,18 @@ module.exports = class App extends Component {
       </div>
     }
     
+    const renderItem = (name, amount) => <li key={name}>
+        <div className="name">{name}</div>
+        <div className="value">{amount}</div>
+    </li>
+    
     return <div className="section stats-section">
         <ul id="stats-list">
             <li>
                 <div className="name">Health</div>
                 {renderBar(this.state.stats.health.current, this.state.stats.health.max)}
             </li>
-            <li>
-                <div className="name">Gold</div>
-                <div className="value">{this.state.stats.gold}</div>
-            </li>
+            {this.state.items.map(({name, amount}) => renderItem(name, amount))}
         </ul>
     </div>
   }

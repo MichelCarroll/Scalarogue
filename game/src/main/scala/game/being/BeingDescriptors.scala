@@ -1,6 +1,6 @@
 package game.being
 
-import game.{Describable, Gold, Item, ItemBag}
+import game._
 import game.being.ai.{IntelligenceFactory, NoIntelligence, SimpleAgroIntelligence}
 import math.{Area, Position}
 import random.RNG._
@@ -26,7 +26,7 @@ case object Player extends BeingDescriptor with Sighted {
   override def isThirdPerson = false
   val name = "you"
   override val isProtagonist = true
-  def drop = ItemBag.empty
+  def drop = ItemBag(HealthPotion -> 5)
   val damageRange = DamageRange(Damage(2), Damage(4))
 
   private val viewportRange = 6
@@ -50,7 +50,7 @@ case object Player extends BeingDescriptor with Sighted {
 
 case object Spider extends BeingDescriptor {
   val name = "spider"
-  def drop = ItemBag(Map(Gold -> 5))
+  def drop = ItemBag(Gold -> 5)
   val damageRange = DamageRange(Damage(1), Damage(2))
 
   val bodyFactory = new SimpleHumanoidGaussianBodyFactory(meanHealth = 5, variation = 3)

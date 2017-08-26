@@ -29,9 +29,17 @@ case class GameDisplayAdapter(
         "health" -> js.Dictionary(
           "max" -> state.dungeon.player.map(_.body.fullHealth.value).getOrElse(1.0),
           "current" -> state.dungeon.player.map(_.body.health.value).getOrElse(0.0)
-        ),
-        "gold" -> state.dungeon.player.map(_.goldAmount).getOrElse(0)
-      )
+        )
+      ),
+      "items" -> state.dungeon.player
+        .map(_.itemBag.items.map {
+          case (item, amount) => js.Dictionary(
+            "name" -> item.capitalizedName,
+            "amount" -> amount
+          )
+        }.toSeq)
+        .map(items => js.Array(items: _*))
+        .getOrElse(js.Dictionary.empty)
     )
     onUpdateState(gameState)
   }

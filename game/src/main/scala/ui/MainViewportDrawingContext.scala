@@ -61,6 +61,7 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D)
         }
         itemBag.items.keys.foreach {
           case Gold => drawGridImage(imageRepository.gold, position)
+          case _ => drawGridImage(imageRepository.itemBag, position)
         }
       case (position, Some(ClosedCell)) =>
         drawGridImage(imageRepository.wall, position)

@@ -41,6 +41,7 @@ class ImageRepository(canvasContext: dom.CanvasRenderingContext2D) {
   val nugget = imageWithSrc(s"${imageDirectory}nugget.png", ImageSourceSize(607, 600))
   val spider = imageWithSrc(s"${imageDirectory}spider.png", ImageSourceSize(596, 594))
   val gold = imageWithSrc(s"${imageDirectory}gold.png", ImageSourceSize(600, 600))
+  val itemBag = imageWithSrc(s"${imageDirectory}gold.png", ImageSourceSize(600, 600)) // NEED TO MAKE THIS ONE
 
 
   val loaded: Future[Unit] = Future.sequence(Set(

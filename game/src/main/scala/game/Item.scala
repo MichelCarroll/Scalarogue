@@ -5,6 +5,7 @@ package game
   */
 sealed trait Item {
   val name: String
+  val capitalizedName: String
 }
 
 /**
@@ -12,6 +13,12 @@ sealed trait Item {
   */
 case object Gold extends Item {
   val name = "gold"
+  val capitalizedName = "Gold"
+}
+
+case object HealthPotion extends Item {
+  val name = "health potion"
+  val capitalizedName = "Health Potion"
 }
 
 case class ItemBag(items: Map[Item, Int]) extends AnyVal {
@@ -26,5 +33,7 @@ case class ItemBag(items: Map[Item, Int]) extends AnyVal {
 }
 
 object ItemBag {
-  val empty = ItemBag(Map())
+  val empty = ItemBag(Map[Item, Int]())
+
+  def apply(items: (Item, Int)*): ItemBag = ItemBag(items.toMap)
 }
