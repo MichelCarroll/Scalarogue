@@ -1,6 +1,6 @@
 package dungeon
 
-import game.{Blocking, Item, Opaque, Structure}
+import game._
 import game.being.Being
 /**
   * Created by MichelCarroll on 3/28/2017.
@@ -16,7 +16,7 @@ sealed trait Cell {
 case class OpenCell(
                      being: Option[Being] = None,
                      structure: Option[Structure] = None,
-                     item: Set[Item] = Set()
+                     itemBag: ItemBag = ItemBag.empty
                    ) extends Cell {
   def passable = being.isEmpty && !structure.exists {
     case _: Blocking => true

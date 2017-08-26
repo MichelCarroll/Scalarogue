@@ -20,13 +20,13 @@ case class IdentityTransition(state: GameState) extends GameTransition {
   def newState = state
 }
 
-case class MoveTransition(subject: Being, oldCellPosition: Position, newCellPosition: Position, newCellBeing: Being, newCellItems: Set[Item], newCellStructure: Option[Structure], state: GameState) extends GameTransition  {
+case class MoveTransition(subject: Being, oldCellPosition: Position, newCellPosition: Position, newCellBeing: Being, newCellItems: ItemBag, newCellStructure: Option[Structure], state: GameState) extends GameTransition  {
 
-  val notifications = newCellItems.map(item => TargetTaken(subject.descriptor, item)).toList
+  val notifications = newCellItems.items.map { case (item, amount) => TargetTaken(subject.descriptor, amount, item) }.toList
   val newCell = OpenCell(
-    being = Some(newCellBeing.copy(items = newCellBeing.items ++ newCellItems)),
+    being = Some(newCellBeing.copy(itemBag = newCellBeing.itemBag + newCellItems)),
     structure = newCellStructure,
-    item = Set()
+    itemBag = ItemBag.empty
   )
 
   def newState = state.copy(
@@ -64,7 +64,9 @@ case class HitTransition(sourceBeing: Being, targetBeing: Being, targetCell: Ope
   def hitNotification = TargetHit(sourceBeing.descriptor, newBeing.descriptor, notificationOpt)
   def deathNotifications =
     if(newBeing.body.dead)
-      TargetDies(newBeing.descriptor) :: newBeing.items.map(item => TargetDropsItem(targetBeing.descriptor, item)).toList
+      TargetDies(newBeing.descriptor) :: newBeing.itemBag.items.map {
+        case (item, amount) => TargetDropsItem(targetBeing.descriptor, amount, item)
+      }.toList
     else List()
 
   val notifications = hitNotification :: deathNotifications
@@ -72,10 +74,10 @@ case class HitTransition(sourceBeing: Being, targetBeing: Being, targetCell: Ope
   def newState = {
     val updatedDungeon = if(newBeing.body.dead)
       state.dungeon.withUpdatedCell(targetBeingPosition,
-        OpenCell(None, targetCell.structure, targetCell.item ++ newBeing.items)
+        OpenCell(None, targetCell.structure, targetCell.itemBag + newBeing.itemBag)
       )
     else
-      state.dungeon.withUpdatedCell(targetBeingPosition, OpenCell(Some(newBeing), targetCell.structure, targetCell.item))
+      state.dungeon.withUpdatedCell(targetBeingPosition, OpenCell(Some(newBeing), targetCell.structure, targetCell.itemBag))
 
     state.copy(dungeon = updatedDungeon, rng = newRng, notificationHistory = notifications ++: state.notificationHistory)
   }

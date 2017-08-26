@@ -37,9 +37,9 @@ trait Notification {
   val message: String
 }
 
-case class TargetTaken(by: Describable, item: Item) extends Notification {
+case class TargetTaken(by: Describable, amount: Int, item: Item) extends Notification {
   val verb = if(by.isProtagonist) "pick up" else "picks up"
-  val message = s"${by.subject} $verb ${item.amount} ${item.name}"
+  val message = s"${by.subject} $verb $amount ${item.name}"
 }
 
 case class TargetOpened(by: Describable, target: Describable) extends Notification {
@@ -68,7 +68,7 @@ case class TargetDies(target: Describable) extends Notification {
   val message = s"${target.subject} $verb!"
 }
 
-case class TargetDropsItem(by: Describable, item: Item) extends Notification {
+case class TargetDropsItem(by: Describable, amount: Int, item: Item) extends Notification {
   val verb = if(by.isProtagonist) "drop" else "drops"
-  val message = s"${by.subject} $verb ${item.amount} ${item.name}!"
+  val message = s"${by.subject} $verb $amount ${item.name}!"
 }
