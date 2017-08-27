@@ -13,82 +13,42 @@ import random.RNG._
 import com.softwaremill.quicklens._
 
 
-trait GameTransition {
-  def newState: GameState
-}
-
-case class MoveTransition(subject: Being, oldCellPosition: Position, newCellPosition: Position, newCellBeing: Being, newCellItems: ItemBag, newCellStructure: Option[Structure], state: GameState) extends GameTransition  {
-
-  val notifications = newCellItems.items.map { case (item, amount) => TargetTaken(subject.descriptor, amount, item) }.toList
-
-  def newState = state
-    .modify(_.dungeon.cells.at(oldCellPosition)).using {
-      case Cell(_, structure, items) => Cell(None, structure, items)
-    }
-    .modify(_.dungeon.cells.at(newCellPosition)).using {
-      case Cell(_, structure, items) => Cell(
-        being = Some(newCellBeing.copy(itemBag = newCellBeing.itemBag + newCellItems)),
-        structure = newCellStructure,
-        itemBag = ItemBag.empty
-      )
-    }
-    .modify(_.notificationHistory).using(notifications ++: _)
-
-}
-
-case class RefreshRevealedPositionsTransition(state: GameState) extends GameTransition {
-
-  def newState = state.dungeon.playerPosition match {
-    case Some(position) =>
-      state.copy(revealedPositions = state.revealedPositions ++ Player.positionsWithinRangeTouchedByPerimeterRay(position, state.dungeon))
-    case _ => state
-  }
-
-}
-
-
-case class HitTransition(sourceBeing: Being, targetBeing: Being, targetCell: Cell, targetBeingPosition: Position, state: GameState) extends GameTransition  {
-
-  val (((newBeing, notificationOpt), damage), newRng) = sourceBeing.descriptor.damageRange
-    .randomDamage
-    .flatMap(damage => targetBeing.hit(damage).map((_, damage)))(state.rng)
-
-  def hitNotification = TargetHit(sourceBeing.descriptor, newBeing.descriptor, notificationOpt)
-  def deathNotifications =
-    if(newBeing.body.dead)
-      TargetDies(newBeing.descriptor) :: newBeing.itemBag.items.map {
-        case (item, amount) => TargetDropsItem(targetBeing.descriptor, amount, item)
-      }.toList
-    else List()
-
-  val notifications = hitNotification :: deathNotifications
-
-  def newState =
-    (
-      if (newBeing.body.dead)
-        state.modify(_.dungeon.cells.at(targetBeingPosition)).setTo(
-          Cell(None, targetCell.structure, targetCell.itemBag + newBeing.itemBag)
-        )
-      else
-        state.modify(_.dungeon.cells.at(targetBeingPosition)).setTo(
-          Cell(Some(newBeing), targetCell.structure, targetCell.itemBag)
-        )
-    )
-    .modify(_.rng).setTo(newRng)
-    .modify(_.notificationHistory).using(notifications ++: _)
-
-}
-
 case class GameState(dungeon: Dungeon, rng: RNG, revealedPositions: Set[Position], notificationHistory: List[Notification]) {
   import Command._
 
   def applyCommand(sourcePosition: Position, command: Command): GameState = {
 
     def attemptNewPosition(sourceBeing: Being, destinationPosition: Position): GameState =
+
       dungeon.cells.get(destinationPosition) match {
 
         case Some(cell@Cell(Some(being: Being), structure, itemsOnGround)) =>
-          HitTransition(sourceBeing, being, cell, destinationPosition, this).newState
+
+          val ((newBeing, notificationOpt), newRng) = sourceBeing.descriptor
+            .damageRange
+            .randomDamage
+            .flatMap(being.hit)(rng)
+
+          def hitNotification = TargetHit(sourceBeing.descriptor, newBeing.descriptor, notificationOpt)
+          def deathNotifications =
+            if(newBeing.body.dead)
+              TargetDies(newBeing.descriptor) :: newBeing.itemBag.items.map {
+                case (item, amount) => TargetDropsItem(being.descriptor, amount, item)
+              }.toList
+            else List()
+
+          (
+            if (newBeing.body.dead)
+              this
+                .modify(_.dungeon.cells.at(destinationPosition).being).setTo(None)
+                .modify(_.dungeon.cells.at(destinationPosition).itemBag).using(_ + newBeing.itemBag)
+            else
+              this
+                .modify(_.dungeon.cells.at(destinationPosition).being).setTo(Some(newBeing))
+            )
+            .modify(_.rng).setTo(newRng)
+            .modify(_.notificationHistory).using(hitNotification :: deathNotifications ++: _)
+
 
         case Some(cell@Cell(None, Some(openable: Openable), items)) =>
           this
@@ -97,8 +57,18 @@ case class GameState(dungeon: Dungeon, rng: RNG, revealedPositions: Set[Position
             }
             .modify(_.notificationHistory).using(TargetOpened(sourceBeing.descriptor, openable) +: _)
 
-        case Some(cell@Cell(None, structure, items)) if cell.passable =>
-          MoveTransition(sourceBeing, sourcePosition, destinationPosition, sourceBeing, items, structure, this).newState
+        case Some(cell@Cell(None, structure, itemBag)) if cell.passable =>
+          this
+            .modify(_.dungeon.cells.at(sourcePosition).being)
+            .setTo(None)
+            .modify(_.dungeon.cells.at(destinationPosition).being)
+            .setTo(Some(sourceBeing.modify(_.itemBag).using(_ + itemBag)))
+            .modify(_.dungeon.cells.at(destinationPosition).itemBag)
+            .setTo(ItemBag.empty)
+            .modify(_.notificationHistory)
+            .using(itemBag.items.map {
+              case (item, amount) => TargetTaken(sourceBeing.descriptor, amount, item)
+            }.toList ++: _)
 
         case _ => this
 
@@ -116,11 +86,7 @@ case class GameState(dungeon: Dungeon, rng: RNG, revealedPositions: Set[Position
     }
   }
 
-
 }
-
-
-
 
 
 sealed trait Command

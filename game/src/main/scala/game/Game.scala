@@ -1,13 +1,13 @@
 package game
 
 import dungeon.Cell
-import game.being.Spider
+import game.being.{Player, Spider}
 import math.Position
 import org.scalajs.dom
 import org.scalajs.dom.ext.Color
 import random.SimpleRNG
 import ui.GameDisplayAdapter
-
+import com.softwaremill.quicklens._
 
 /**
   * Created by MichelCarroll on 3/12/2017.
@@ -32,10 +32,20 @@ class Game(seed: Long, displayAdapter: GameDisplayAdapter) {
   def executeTurn(playerCommand: Command) = {
 
     gameState.dungeon.playerPosition.foreach(playerPosition => {
-      val preAIState = RefreshRevealedPositionsTransition(gameState.applyCommand(playerPosition, playerCommand)).newState
-      val postAIState = preAIState.dungeon
+
+      gameState = gameState.applyCommand(playerPosition, playerCommand)
+
+      gameState = gameState.dungeon.playerPosition match {
+        case Some(position) =>
+          gameState
+            .modify(_.revealedPositions)
+            .using(_ ++ Player.positionsWithinRangeTouchedByPerimeterRay(position, gameState.dungeon))
+        case _ => gameState
+      }
+
+      gameState = gameState.dungeon
         .beingOfTypePositions(Spider)
-        .foldLeft(preAIState)((last, beingPosition) => last.dungeon.cells(beingPosition) match {
+        .foldLeft(gameState)((last, beingPosition) => last.dungeon.cells(beingPosition) match {
           case Cell(Some(being), _, _) =>
             val (commandOpt, newRng) = being.intelligence.nextCommand(beingPosition, last.dungeon)(last.rng)
             val newGameState = GameState(last.dungeon, newRng, last.revealedPositions, last.notificationHistory)
@@ -46,7 +56,7 @@ class Game(seed: Long, displayAdapter: GameDisplayAdapter) {
             }
           case _ => last
         })
-      gameState = postAIState
+
     })
 
     gameState.dungeon.playerPosition.foreach(position => redraw(gameState, position))

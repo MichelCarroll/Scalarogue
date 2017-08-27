@@ -33,7 +33,7 @@ object DungeonGenerator {
           .map(positionedTile =>
             (positionedTile.head._1, positionedTile.tail.head._1)
           )
-      
+
       val randomFloorplanCells: Rand[Map[Position, Cell]] = {
         val listOfRandomCells = floorplan.positionedTiles.mapValues {
           case DoorTile => unit(Cell(structure = Some(ClosedDoor)))
