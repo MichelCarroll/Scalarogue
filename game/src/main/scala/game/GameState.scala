@@ -80,7 +80,17 @@ case class GameState(dungeon: Dungeon, rng: RNG, revealedPositions: Set[Position
           case Down => attemptNewPosition(being, sourcePosition.down(1))
           case Left => attemptNewPosition(being, sourcePosition.left(1))
           case Right => attemptNewPosition(being, sourcePosition.right(1))
-          case UseItem(itemSlug) => this
+          case UseItem(itemSlug) =>
+            being.itemBag.get(itemSlug) match {
+              case Some(item) =>
+                this
+                  .modify(_.dungeon.cells.at(sourcePosition).being.each.itemBag)
+                  .using(_ - item)
+                  .modify(_.dungeon.cells.at(sourcePosition).being.each)
+                  .using(_.use(item))
+
+              case None => this
+            }
         }
       case _ => throw new Exception("No being in this tile")
     }

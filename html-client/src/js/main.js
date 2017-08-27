@@ -8,7 +8,7 @@ module.exports = class App extends Component {
   }
   
   componentDidMount() {
-    window.Main.start({
+    const hooks = window.Main.start({
       seed: +(new Date()),
       viewport: document.getElementById('viewport'),
       minimap: document.getElementById('minimap'),
@@ -17,6 +17,8 @@ module.exports = class App extends Component {
         this.setState(state)
       }
     });
+    console.log(hooks);
+    this.setState({ hooks })
   }
   
   renderStats() {
@@ -34,7 +36,7 @@ module.exports = class App extends Component {
       </div>
     }
     
-    const renderItem = (name, amount) => <li key={name}>
+    const renderItem = (name, amount, slug) => <li onClick={() => this.state.hooks.useItem(slug)} key={slug}>
         <div className="name">{name}</div>
         <div className="value">{amount}</div>
     </li>
@@ -45,7 +47,7 @@ module.exports = class App extends Component {
                 <div className="name">Health</div>
                 {renderBar(this.state.stats.health.current, this.state.stats.health.max)}
             </li>
-            {this.state.items.map(({name, amount}) => renderItem(name, amount))}
+            {this.state.items.map(({name, amount, slug}) => renderItem(name, amount, slug))}
         </ul>
     </div>
   }

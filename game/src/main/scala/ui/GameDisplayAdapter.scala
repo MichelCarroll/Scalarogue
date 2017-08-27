@@ -34,6 +34,7 @@ case class GameDisplayAdapter(
       "items" -> state.dungeon.player
         .map(_.itemBag.items.map {
           case (item, amount) => js.Dictionary(
+            "slug" -> item.slug,
             "name" -> item.capitalizedName,
             "amount" -> amount
           )

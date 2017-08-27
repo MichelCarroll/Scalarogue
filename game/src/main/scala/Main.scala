@@ -16,8 +16,9 @@ import scala.scalajs.js.annotation.{JSExport, JSExportTopLevel}
 @JSExportTopLevel("GameHooks")
 class GameHooks(game: Game) {
 
-  def useItem(itemSlugValue: String): Unit = {
-    game.executeTurn(UseItem(ItemSlug(itemSlugValue)))
+  @JSExport
+  def useItem(itemSlug: ItemSlug): Unit = {
+    game.executeTurn(UseItem(itemSlug))
   }
 
 }

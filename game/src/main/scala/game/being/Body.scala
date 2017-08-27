@@ -19,10 +19,6 @@ trait Damagable {
   def damagePercentage: Double = health / fullHealth
 }
 
-trait Body extends Conscious with Mortal with Damagable {
-  def struckBy(damage: Damage): Rand[(Body, Option[BodyEffect])]
-}
-
 trait BodyFactory {
   def randomNewBody: Rand[Body]
 }
@@ -43,7 +39,7 @@ case class BodyDamaged(damage: Damage) extends BodyEffect
 case class BodyDestroyed(damage: Damage) extends BodyEffect
 case class BodyFellUnconscious(damage: Damage) extends BodyEffect
 
-case class HumanoidBody(fullHealth: Health, health: Health) extends Body {
+case class Body(fullHealth: Health, health: Health) extends Conscious with Mortal with Damagable {
 
   def dead = destroyed
 
@@ -61,5 +57,5 @@ case class HumanoidBody(fullHealth: Health, health: Health) extends Body {
 }
 
 object HumanoidBody {
-  def apply(health: Health): HumanoidBody = HumanoidBody(health, health)
+  def apply(health: Health): Body = Body(health, health)
 }

@@ -35,6 +35,15 @@ case class ItemBag(items: Map[Item, Int]) extends AnyVal {
     ItemBag(mergedItems)
   }
 
+  def get(itemSlug: ItemSlug): Option[Item] = items.find {
+    case (item, amount) => item.slug == itemSlug && amount > 0
+  }.map(_._1)
+
+  def -(item: Item): ItemBag = items(item) match {
+    case amount if amount == 1 => ItemBag(items - item)
+    case amount if amount >= 2 => ItemBag(items.updated(item, amount - 1))
+  }
+
 }
 
 object ItemBag {
