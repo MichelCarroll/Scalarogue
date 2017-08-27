@@ -24,8 +24,8 @@ object DungeonGenerator {
 
       def randomRoomCell: Rand[Cell] =
         nextRatio.flatMap {
-          case x if x < 0.015 =>  Spider.randomNewBeing.map(being => OpenCell(being = Some(being)))
-          case _ => unit(OpenCell())
+          case x if x < 0.015 =>  Spider.randomNewBeing.map(being => Cell(being = Some(being)))
+          case _ => unit(Cell())
         }
 
       val randomEntranceAndExit: Rand[(Position, Position)] =
@@ -33,15 +33,12 @@ object DungeonGenerator {
           .map(positionedTile =>
             (positionedTile.head._1, positionedTile.tail.head._1)
           )
-
-      val wallCells: Map[Position, Cell] =
-        Area(Position(0,0), floorplan.size).positions.map(_ -> ClosedCell).toMap
-
+      
       val randomFloorplanCells: Rand[Map[Position, Cell]] = {
         val listOfRandomCells = floorplan.positionedTiles.mapValues {
-          case DoorTile => unit(OpenCell(structure = Some(ClosedDoor)))
+          case DoorTile => unit(Cell(structure = Some(ClosedDoor)))
           case RoomTile => randomRoomCell
-          case tile => unit(OpenCell())
+          case tile => unit(Cell())
         }
         RNG.sequence(listOfRandomCells.toList
           .map(x => unit(x._1).combine(x._2))
@@ -54,9 +51,9 @@ object DungeonGenerator {
         .map {
           case ((floorplanCells, (entrancePosition, exitPosition)), player) =>
             Right(Dungeon(
-              cells = wallCells ++ floorplanCells
-                + (entrancePosition -> OpenCell(being = Some(player), structure = Some(Upstairs)))
-                + (exitPosition -> OpenCell(structure = Some(Downstairs))),
+              cells = floorplanCells
+                + (entrancePosition -> Cell(being = Some(player), structure = Some(Upstairs)))
+                + (exitPosition -> Cell(structure = Some(Downstairs))),
               area = Area(Position(0,0), floorplan.size),
               entrancePosition = entrancePosition
             ))

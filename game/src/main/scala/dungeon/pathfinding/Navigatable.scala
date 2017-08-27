@@ -19,7 +19,7 @@ trait Navigatable {
             true
           else
             cells.get(results._2) match {
-              case Some(cell@OpenCell(None,Some(ClosedDoor),_)) => true
+              case Some(cell@Cell(None,Some(ClosedDoor),_)) => true
               case Some(cell) if cell.passable => true
               case _ => false
             }

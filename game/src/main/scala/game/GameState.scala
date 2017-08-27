@@ -1,7 +1,7 @@
 package game
 
 
-import dungeon.{Cell, Dungeon, OpenCell}
+import dungeon.{Dungeon, Cell}
 import dungeon.generation.DungeonGenerator
 import dungeon.generation.DungeonGenerator.GenerationError
 import dungeon.generation.floorplan.{BSPTree, Floorplan, RandomBSPTreeParameters}
@@ -23,10 +23,10 @@ case class MoveTransition(subject: Being, oldCellPosition: Position, newCellPosi
 
   def newState = state
     .modify(_.dungeon.cells.at(oldCellPosition)).using {
-      case OpenCell(_, structure, items) => OpenCell(None, structure, items)
+      case Cell(_, structure, items) => Cell(None, structure, items)
     }
     .modify(_.dungeon.cells.at(newCellPosition)).using {
-      case OpenCell(_, structure, items) => OpenCell(
+      case Cell(_, structure, items) => Cell(
         being = Some(newCellBeing.copy(itemBag = newCellBeing.itemBag + newCellItems)),
         structure = newCellStructure,
         itemBag = ItemBag.empty
@@ -47,7 +47,7 @@ case class RefreshRevealedPositionsTransition(state: GameState) extends GameTran
 }
 
 
-case class HitTransition(sourceBeing: Being, targetBeing: Being, targetCell: OpenCell, targetBeingPosition: Position, state: GameState) extends GameTransition  {
+case class HitTransition(sourceBeing: Being, targetBeing: Being, targetCell: Cell, targetBeingPosition: Position, state: GameState) extends GameTransition  {
 
   val (((newBeing, notificationOpt), damage), newRng) = sourceBeing.descriptor.damageRange
     .randomDamage
@@ -67,11 +67,11 @@ case class HitTransition(sourceBeing: Being, targetBeing: Being, targetCell: Ope
     (
       if (newBeing.body.dead)
         state.modify(_.dungeon.cells.at(targetBeingPosition)).setTo(
-          OpenCell(None, targetCell.structure, targetCell.itemBag + newBeing.itemBag)
+          Cell(None, targetCell.structure, targetCell.itemBag + newBeing.itemBag)
         )
       else
         state.modify(_.dungeon.cells.at(targetBeingPosition)).setTo(
-          OpenCell(Some(newBeing), targetCell.structure, targetCell.itemBag)
+          Cell(Some(newBeing), targetCell.structure, targetCell.itemBag)
         )
     )
     .modify(_.rng).setTo(newRng)
@@ -87,17 +87,17 @@ case class GameState(dungeon: Dungeon, rng: RNG, revealedPositions: Set[Position
     def attemptNewPosition(sourceBeing: Being, destinationPosition: Position): GameState =
       dungeon.cells.get(destinationPosition) match {
 
-        case Some(cell@OpenCell(Some(being: Being), structure, itemsOnGround)) =>
+        case Some(cell@Cell(Some(being: Being), structure, itemsOnGround)) =>
           HitTransition(sourceBeing, being, cell, destinationPosition, this).newState
 
-        case Some(cell@OpenCell(None, Some(openable: Openable), items)) =>
+        case Some(cell@Cell(None, Some(openable: Openable), items)) =>
           this
             .modify(_.dungeon.cells.at(destinationPosition)).using {
-              case cell@OpenCell(_,_,_) => cell.modify(_.structure).setTo(Some(openable.opened))
+              case cell@Cell(_,_,_) => cell.modify(_.structure).setTo(Some(openable.opened))
             }
             .modify(_.notificationHistory).using(TargetOpened(sourceBeing.descriptor, openable) +: _)
 
-        case Some(cell@OpenCell(None, structure, items)) if cell.passable =>
+        case Some(cell@Cell(None, structure, items)) if cell.passable =>
           MoveTransition(sourceBeing, sourcePosition, destinationPosition, sourceBeing, items, structure, this).newState
 
         case _ => this
@@ -105,7 +105,7 @@ case class GameState(dungeon: Dungeon, rng: RNG, revealedPositions: Set[Position
       }
 
     dungeon.cells.get(sourcePosition) match {
-      case Some(OpenCell(Some(being@Being(_,_,_,_)), _, _)) => command match {
+      case Some(Cell(Some(being@Being(_,_,_,_)), _, _)) => command match {
           case Up => attemptNewPosition(being, sourcePosition.up(1))
           case Down => attemptNewPosition(being, sourcePosition.down(1))
           case Left => attemptNewPosition(being, sourcePosition.left(1))

@@ -1,6 +1,6 @@
 package game
 
-import dungeon.OpenCell
+import dungeon.Cell
 import game.being.Spider
 import math.Position
 import org.scalajs.dom
@@ -36,7 +36,7 @@ class Game(seed: Long, displayAdapter: GameDisplayAdapter) {
       val postAIState = preAIState.dungeon
         .beingOfTypePositions(Spider)
         .foldLeft(preAIState)((last, beingPosition) => last.dungeon.cells(beingPosition) match {
-          case OpenCell(Some(being), _, _) =>
+          case Cell(Some(being), _, _) =>
             val (commandOpt, newRng) = being.intelligence.nextCommand(beingPosition, last.dungeon)(last.rng)
             val newGameState = GameState(last.dungeon, newRng, last.revealedPositions, last.notificationHistory)
 

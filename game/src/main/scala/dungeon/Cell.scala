@@ -2,22 +2,16 @@ package dungeon
 
 import game._
 import game.being.Being
-/**
-  * Created by MichelCarroll on 3/28/2017.
-  */
-sealed trait Cell {
-  def passable: Boolean
-  def opaque: Boolean
-}
+
 
 /**
   * Created by MichelCarroll on 3/28/2017.
   */
-case class OpenCell(
+case class Cell(
                      being: Option[Being] = None,
                      structure: Option[Structure] = None,
                      itemBag: ItemBag = ItemBag.empty
-                   ) extends Cell {
+                   ) {
   def passable = being.isEmpty && !structure.exists {
     case _: Blocking => true
     case _ => false
@@ -26,12 +20,4 @@ case class OpenCell(
     case _: Opaque => true
     case _ => false
   }
-}
-
-/**
-  * Created by MichelCarroll on 3/28/2017.
-  */
-case object ClosedCell extends Cell {
-  def passable = false
-  def opaque = true
 }

@@ -43,7 +43,7 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D)
       .toMap
 
     cellsInLineOfSight.foreach {
-      case (position, Some(OpenCell(being, structure, itemBag))) =>
+      case (position, Some(Cell(being, structure, itemBag))) =>
         drawGridImage(imageRepository.floor, position)
         structure match {
           case Some(ClosedDoor) => drawGridImage(imageRepository.closed_door, position)
@@ -63,8 +63,6 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D)
           case Gold => drawGridImage(imageRepository.gold, position)
           case _ => drawGridImage(imageRepository.itemBag, position)
         }
-      case (position, Some(ClosedCell)) =>
-        drawGridImage(imageRepository.wall, position)
       case (position, None) =>
         drawGridImage(imageRepository.wall, position)
     }

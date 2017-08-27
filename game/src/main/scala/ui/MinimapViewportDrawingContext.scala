@@ -5,7 +5,7 @@ import game.being.Player
 import org.scalajs.dom
 import math._
 import org.scalajs.dom.ext.Color
-import dungeon.OpenCell
+import dungeon.Cell
 
 /**
   * Created by MichelCarroll on 3/28/2017.
@@ -32,7 +32,7 @@ class MinimapViewportDrawingContext(renderingContext: dom.CanvasRenderingContext
     val cellEdge = drawingArea.size.width / gameState.dungeon.area.size.width
 
     val openPositions = gameState.dungeon.cells.flatMap {
-      case (position, OpenCell(_,_,_)) => Some(position)
+      case (position, Cell(_,_,_)) => Some(position)
       case _ => None
     }.toSet
 
