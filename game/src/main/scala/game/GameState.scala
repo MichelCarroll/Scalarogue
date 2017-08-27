@@ -10,31 +10,29 @@ import math.{Position, Size}
 import primitives.Ratio
 import random.RNG
 import random.RNG._
+import com.softwaremill.quicklens._
 
 
 trait GameTransition {
   def newState: GameState
 }
 
-case class IdentityTransition(state: GameState) extends GameTransition {
-  def newState = state
-}
-
 case class MoveTransition(subject: Being, oldCellPosition: Position, newCellPosition: Position, newCellBeing: Being, newCellItems: ItemBag, newCellStructure: Option[Structure], state: GameState) extends GameTransition  {
 
   val notifications = newCellItems.items.map { case (item, amount) => TargetTaken(subject.descriptor, amount, item) }.toList
-  val newCell = OpenCell(
-    being = Some(newCellBeing.copy(itemBag = newCellBeing.itemBag + newCellItems)),
-    structure = newCellStructure,
-    itemBag = ItemBag.empty
-  )
 
-  def newState = state.copy(
-    dungeon = state.dungeon
-      .withRemovedBeing(oldCellPosition)
-      .withUpdatedCell(newCellPosition, newCell),
-    notificationHistory = notifications ++: state.notificationHistory
-  )
+  def newState = state
+    .modify(_.dungeon.cells.at(oldCellPosition)).using {
+      case OpenCell(_, structure, items) => OpenCell(None, structure, items)
+    }
+    .modify(_.dungeon.cells.at(newCellPosition)).using {
+      case OpenCell(_, structure, items) => OpenCell(
+        being = Some(newCellBeing.copy(itemBag = newCellBeing.itemBag + newCellItems)),
+        structure = newCellStructure,
+        itemBag = ItemBag.empty
+      )
+    }
+    .modify(_.notificationHistory).using(notifications ++: _)
 
 }
 
@@ -48,12 +46,6 @@ case class RefreshRevealedPositionsTransition(state: GameState) extends GameTran
 
 }
 
-case class OpenTransition(subject: Being, openable: Openable, newCell: Cell, position: Position, state: GameState) extends GameTransition  {
-  def newState = state.copy(
-    dungeon = state.dungeon.withUpdatedCell(position, newCell),
-    notificationHistory = TargetOpened(subject.descriptor, openable) :: state.notificationHistory
-  )
-}
 
 case class HitTransition(sourceBeing: Being, targetBeing: Being, targetCell: OpenCell, targetBeingPosition: Position, state: GameState) extends GameTransition  {
 
@@ -71,49 +63,46 @@ case class HitTransition(sourceBeing: Being, targetBeing: Being, targetCell: Ope
 
   val notifications = hitNotification :: deathNotifications
 
-  def newState = {
-    val updatedDungeon = if(newBeing.body.dead)
-      state.dungeon.withUpdatedCell(targetBeingPosition,
-        OpenCell(None, targetCell.structure, targetCell.itemBag + newBeing.itemBag)
-      )
-    else
-      state.dungeon.withUpdatedCell(targetBeingPosition, OpenCell(Some(newBeing), targetCell.structure, targetCell.itemBag))
-
-    state.copy(dungeon = updatedDungeon, rng = newRng, notificationHistory = notifications ++: state.notificationHistory)
-  }
+  def newState =
+    (
+      if (newBeing.body.dead)
+        state.modify(_.dungeon.cells.at(targetBeingPosition)).setTo(
+          OpenCell(None, targetCell.structure, targetCell.itemBag + newBeing.itemBag)
+        )
+      else
+        state.modify(_.dungeon.cells.at(targetBeingPosition)).setTo(
+          OpenCell(Some(newBeing), targetCell.structure, targetCell.itemBag)
+        )
+    )
+    .modify(_.rng).setTo(newRng)
+    .modify(_.notificationHistory).using(notifications ++: _)
 
 }
 
 case class GameState(dungeon: Dungeon, rng: RNG, revealedPositions: Set[Position], notificationHistory: List[Notification]) {
   import Command._
 
-  def applyCommand(sourcePosition: Position, command: Command): GameTransition = {
+  def applyCommand(sourcePosition: Position, command: Command): GameState = {
 
-    def attemptNewPosition(sourceBeing: Being, destinationPosition: Position): GameTransition =
+    def attemptNewPosition(sourceBeing: Being, destinationPosition: Position): GameState =
       dungeon.cells.get(destinationPosition) match {
 
         case Some(cell@OpenCell(Some(being: Being), structure, itemsOnGround)) =>
-          HitTransition(sourceBeing, being, cell, destinationPosition, this)
+          HitTransition(sourceBeing, being, cell, destinationPosition, this).newState
 
-        case Some(OpenCell(None, Some(openable: Openable), items)) =>
-          OpenTransition(sourceBeing, openable, OpenCell(None, Some(openable.opened), items), destinationPosition, this)
+        case Some(cell@OpenCell(None, Some(openable: Openable), items)) =>
+          this
+            .modify(_.dungeon.cells.at(destinationPosition)).using {
+              case cell@OpenCell(_,_,_) => cell.modify(_.structure).setTo(Some(openable.opened))
+            }
+            .modify(_.notificationHistory).using(TargetOpened(sourceBeing.descriptor, openable) +: _)
 
         case Some(cell@OpenCell(None, structure, items)) if cell.passable =>
-          MoveTransition(sourceBeing, sourcePosition, destinationPosition, sourceBeing, items, structure, this)
+          MoveTransition(sourceBeing, sourcePosition, destinationPosition, sourceBeing, items, structure, this).newState
 
-        case _ =>
-          IdentityTransition(this)
+        case _ => this
 
       }
-//
-//    def attemptUseItem(sourcePosition: Position, itemSlug: ItemSlug): GameTransition = {
-//      dungeon.cells.get(sourcePosition) match {
-//        case Some(OpenCell(Some(being@Being(_,_,_,itemBag)), _, _)) =>
-//          itemBag.items.find { case (item, amount) => item.slug == itemSlug && amount > 0 } match {
-//
-//          }
-//      }
-//    }
 
     dungeon.cells.get(sourcePosition) match {
       case Some(OpenCell(Some(being@Being(_,_,_,_)), _, _)) => command match {
@@ -121,7 +110,7 @@ case class GameState(dungeon: Dungeon, rng: RNG, revealedPositions: Set[Position
           case Down => attemptNewPosition(being, sourcePosition.down(1))
           case Left => attemptNewPosition(being, sourcePosition.left(1))
           case Right => attemptNewPosition(being, sourcePosition.right(1))
-          case UseItem(itemSlug) => IdentityTransition(this)
+          case UseItem(itemSlug) => this
         }
       case _ => throw new Exception("No being in this tile")
     }

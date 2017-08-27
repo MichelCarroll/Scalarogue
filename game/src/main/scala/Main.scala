@@ -11,9 +11,9 @@ import org.scalajs.dom.{CanvasRenderingContext2D, html}
 import primitives.Ratio
 import random.SimpleRNG
 
-import scala.scalajs.js.annotation.JSExport
+import scala.scalajs.js.annotation.{JSExport, JSExportTopLevel}
 
-@JSExport
+@JSExportTopLevel("GameHooks")
 class GameHooks(game: Game) {
 
   def useItem(itemSlugValue: String): Unit = {
@@ -22,11 +22,11 @@ class GameHooks(game: Game) {
 
 }
 
-@JSExport
+@JSExportTopLevel("Main")
 object Main {
 
   @JSExport
-  def main(options: js.Dictionary[Any]): GameHooks = {
+  def start(options: js.Dictionary[Any]): GameHooks = {
 
     val seed = options("seed").toString.toLong
     val viewportCanvas = options("viewport").asInstanceOf[html.Canvas]

@@ -39,7 +39,7 @@ case class GameDisplayAdapter(
           )
         }.toSeq)
         .map(items => js.Array(items: _*))
-        .getOrElse(js.Dictionary.empty)
+        .getOrElse(js.Array())
     )
     onUpdateState(gameState)
   }

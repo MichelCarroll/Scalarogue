@@ -32,25 +32,21 @@ class Game(seed: Long, displayAdapter: GameDisplayAdapter) {
   def executeTurn(playerCommand: Command) = {
 
     gameState.dungeon.playerPosition.foreach(playerPosition => {
-      val transition = gameState.applyCommand(playerPosition, playerCommand)
-      val t2 = RefreshRevealedPositionsTransition(transition.newState)
-      val postAITransition = t2.newState.dungeon
+      val preAIState = RefreshRevealedPositionsTransition(gameState.applyCommand(playerPosition, playerCommand)).newState
+      val postAIState = preAIState.dungeon
         .beingOfTypePositions(Spider)
-        .foldLeft(t2.newState)((last, beingPosition) => last.dungeon.cells(beingPosition) match {
+        .foldLeft(preAIState)((last, beingPosition) => last.dungeon.cells(beingPosition) match {
           case OpenCell(Some(being), _, _) =>
             val (commandOpt, newRng) = being.intelligence.nextCommand(beingPosition, last.dungeon)(last.rng)
             val newGameState = GameState(last.dungeon, newRng, last.revealedPositions, last.notificationHistory)
 
             commandOpt match {
-              case Some(command) =>
-                val transition = newGameState.applyCommand(beingPosition, command)
-                transition.newState
-              case None =>
-                newGameState
+              case Some(command) => newGameState.applyCommand(beingPosition, command)
+              case None => newGameState
             }
           case _ => last
         })
-      gameState = postAITransition
+      gameState = postAIState
     })
 
     gameState.dungeon.playerPosition.foreach(position => redraw(gameState, position))

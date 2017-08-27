@@ -8,7 +8,7 @@ module.exports = class App extends Component {
   }
   
   componentDidMount() {
-    window.Main().main({
+    window.Main.start({
       seed: +(new Date()),
       viewport: document.getElementById('viewport'),
       minimap: document.getElementById('minimap'),

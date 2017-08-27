@@ -16,10 +16,6 @@ case class Dungeon(cells: Map[Position, Cell], area: Area, entrancePosition: Pos
     }
   )
 
-  def withUpdatedCell(at: Position, cell: Cell) = copy(
-    cells = cells.updated(at, cell)
-  )
-
   def withRemovedBeing(at: Position) = copy(
     cells = cells.get(at) match {
       case Some(OpenCell(_, structure, items)) => cells.updated(at, OpenCell(None, structure, items))
