@@ -61,7 +61,7 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D)
         }
         itemBag.items.keys.foreach {
           case Gold => drawGridImage(imageRepository.gold, position)
-          case _ => drawGridImage(imageRepository.itemBag, position)
+          case potion:Potion => drawGridCharacter(position, ',', Color.Red)
         }
       case (position, None) =>
         drawGridImage(imageRepository.wall, position)
@@ -86,6 +86,27 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D)
       (vector.x - viewport.topLeft.x) * cellEdge + drawingArea.position.x,
       (vector.y - viewport.topLeft.y) * cellEdge + drawingArea.position.y
     )
+
+    def drawGridBackground(position: Position, color: Color): Unit = {
+      val pos = canvasVector(position.vector)
+      renderingContext.save()
+      renderingContext.translate(pos.x, pos.y)
+      renderingContext.fillStyle = color.toString()
+      renderingContext.fillRect(0, 0, cellEdge, cellEdge)
+      renderingContext.restore()
+    }
+
+    def drawGridCharacter(position: Position, character: Char, color: Color): Unit = {
+      val pos = canvasVector(position.vector)
+      renderingContext.save()
+      renderingContext.translate(pos.x, pos.y)
+      renderingContext.fillStyle = color.toString()
+      renderingContext.font = "40px monospace"
+      renderingContext.textBaseline = "middle"
+      renderingContext.textAlign = "center"
+      renderingContext.fillText(character.toString, cellEdge / 2, cellEdge / 2, cellEdge)
+      renderingContext.restore()
+    }
 
     def drawGridImage(image: Image, position: Position): Unit = {
       val pos = canvasVector(position.vector)

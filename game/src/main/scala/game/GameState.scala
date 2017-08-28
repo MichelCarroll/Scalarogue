@@ -118,12 +118,12 @@ case class GameState(dungeon: Dungeon, revealedPositions: Set[Position], notific
         val drinkNotification = PotionDrank(sourceBeing.descriptor, potion)
         val effectNotification = BeingAffected(sourceBeing.descriptor, potion.effect)
         this
-          .modify(_.dungeon.cells.at(sourcePosition).being.each.itemBag)
-          .using(_ - potion)
           .modify(_.dungeon.cells.at(sourcePosition).being.each)
           .setTo(potion.effect match {
             case FullyHeal => sourceBeing.modify(_.body.health).setTo(sourceBeing.body.fullHealth)
           })
+          .modify(_.dungeon.cells.at(sourcePosition).being.each.itemBag)
+          .using(_ - potion)
           .modify(_.notificationHistory)
           .using(effectNotification :: drinkNotification :: _)
 

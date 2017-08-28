@@ -25,6 +25,7 @@ object DungeonGenerator {
       def randomRoomCell: Rand[Cell] =
         nextRatio.flatMap {
           case x if x < 0.015 =>  Spider.randomNewBeing.map(being => Cell(being = Some(being)))
+          case x if x < 0.025 =>  unit(Cell(itemBag = ItemBag(HealthPotion -> 1)))
           case _ => unit(Cell())
         }
 
