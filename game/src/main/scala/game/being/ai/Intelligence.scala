@@ -14,10 +14,6 @@ case object NoIntelligence extends Intelligence {
   def nextCommand(viewpoint: Position, dungeon: Dungeon) = unit(None)
 }
 
-case object RandomIntelligence extends Intelligence {
-  def nextCommand(viewpoint: Position, dungeon: Dungeon) = nextFromSet(Command.all)
-}
-
 case class SimpleAgroIntelligence(maxRange: Int) extends Intelligence {
   def nextCommand(viewpoint: Position, dungeon: Dungeon) = {
     unit(

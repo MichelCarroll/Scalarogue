@@ -1,7 +1,6 @@
 package game
 
 
-import game.being.{BodyEffect, BodyDamaged, BodyDestroyed, BodyFellUnconscious, Damage}
 
 
 trait Named { self =>
@@ -47,20 +46,11 @@ case class TargetOpened(by: Describable, target: Describable) extends Notificati
   val message = s"${by.subject} $verb ${target.subject}"
 }
 
-case class TargetHit(by: Describable, target: Describable, bodyEffectOpt: Option[BodyEffect]) extends Notification {
+case class TargetHit(by: Describable, target: Describable, damage: Int) extends Notification {
   val verb = if(by.isProtagonist) "hit" else "hits"
   val prefixMessage = s"${by.subject} $verb ${target.subject}"
 
-  val message = bodyEffectOpt match {
-    case Some(BodyDamaged(damage)) =>
-      s"$prefixMessage, ${target.subjectUsingPronouns} received ${damage.value} damage"
-    case Some(BodyDestroyed(damage)) =>
-      s"$prefixMessage, ${target.subjectUsingPronouns} received ${damage.value} damage, and got destroyed!"
-    case Some(BodyFellUnconscious(damage)) =>
-      s"$prefixMessage, ${target.subjectUsingPronouns} received ${damage.value} damage, and fell unconscious!"
-    case None =>
-      s"$prefixMessage, and has no effect"
-  }
+  val message = s"$prefixMessage, ${target.subjectUsingPronouns} received $damage damage"
 }
 
 case class TargetDies(target: Describable) extends Notification {

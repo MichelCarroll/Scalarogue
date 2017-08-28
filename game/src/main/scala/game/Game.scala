@@ -16,7 +16,8 @@ class Game(seed: Long, displayAdapter: GameDisplayAdapter) {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  private val (initialGameState, newRng) = GameState.start(SimpleRNG(seed))
+  private val (initialGameState, initialRng) = GameState.start(SimpleRNG(seed))
+  private var rng = initialRng
   private var gameState = initialGameState
 
   displayAdapter.mainViewportDrawingContext.ready.map(_ =>
@@ -33,7 +34,14 @@ class Game(seed: Long, displayAdapter: GameDisplayAdapter) {
 
     gameState.dungeon.playerPosition.foreach(playerPosition => {
 
-      gameState = gameState.applyCommand(playerPosition, playerCommand)
+      gameState = gameState.actionTargetFromCommand(playerPosition, playerCommand) match {
+        case Some(actionTarget) =>
+          val (certainOutcomes, newRng) = actionTarget.outcomes(rng)
+          rng = newRng
+          certainOutcomes.foldLeft(gameState)(_.materialize(playerPosition, _))
+
+        case None => gameState
+      }
 
       gameState = gameState.dungeon.playerPosition match {
         case Some(position) =>
@@ -45,21 +53,29 @@ class Game(seed: Long, displayAdapter: GameDisplayAdapter) {
 
       gameState = gameState.dungeon
         .beingOfTypePositions(Spider)
-        .foldLeft(gameState)((last, beingPosition) => last.dungeon.cells(beingPosition) match {
+        .foldLeft(gameState)((lastState, beingPosition) => lastState.dungeon.cells(beingPosition) match {
           case Cell(Some(being), _, _) =>
-            val (commandOpt, newRng) = being.intelligence.nextCommand(beingPosition, last.dungeon)(last.rng)
-            val newGameState = GameState(last.dungeon, newRng, last.revealedPositions, last.notificationHistory)
 
-            commandOpt match {
-              case Some(command) => newGameState.applyCommand(beingPosition, command)
-              case None => newGameState
+            val (commandOpt, newRng) = being.intelligence.nextCommand(beingPosition, lastState.dungeon)(rng)
+            this.rng = newRng
+
+            commandOpt.flatMap(lastState.actionTargetFromCommand(beingPosition, _)) match {
+              case Some(actionTarget) =>
+                val (certainOutcomes, newRng) = actionTarget.outcomes(rng)
+                rng = newRng
+                certainOutcomes.foldLeft(lastState)(_.materialize(beingPosition, _))
+
+              case None => lastState
             }
-          case _ => last
+          case _ => lastState
         })
 
     })
 
-    gameState.dungeon.playerPosition.foreach(position => redraw(gameState, position))
+    //debug
+    gameState.dungeon.playerPosition.foreach(position => println(gameState.actionTargets(position)))
+
+    gameState.dungeon.playerPosition.foreach(redraw(gameState, _))
     displayAdapter.updateState(gameState)
   }
 

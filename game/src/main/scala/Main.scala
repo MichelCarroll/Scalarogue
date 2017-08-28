@@ -2,8 +2,8 @@ import dungeon.generation.floorplan.{BSPTree, Floorplan, RandomBSPTreeParameters
 import ui.{DebugDrawingContext, GameDisplayAdapter}
 import math.Size
 import dungeon.generation.DungeonGenerator
-import game.Command.UseItem
 import game.{Command, Game, ItemSlug}
+import game.Command.Use
 
 import scala.scalajs.js
 import org.scalajs.dom
@@ -18,7 +18,7 @@ class GameHooks(game: Game) {
 
   @JSExport
   def useItem(itemSlug: ItemSlug): Unit = {
-    game.executeTurn(UseItem(itemSlug))
+    game.executeTurn(Use(itemSlug))
   }
 
 }
