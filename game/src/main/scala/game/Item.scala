@@ -2,6 +2,17 @@ package game
 
 case class ItemSlug(value: String) extends AnyVal
 
+sealed trait BeingEffect {
+  def description: String
+}
+case object FullyHeal extends BeingEffect {
+  val description = "fully healed"
+}
+
+sealed trait Potion extends Item {
+  def effect: BeingEffect
+}
+
 /**
   * Created by MichelCarroll on 3/28/2017.
   */
@@ -20,10 +31,11 @@ case object Gold extends Item {
   val capitalizedName = "Gold"
 }
 
-case object HealthPotion extends Item {
+case object HealthPotion extends Potion {
   val slug = ItemSlug("health-potion")
   val name = "health potion"
   val capitalizedName = "Health Potion"
+  val effect = FullyHeal
 }
 
 case class ItemBag(items: Map[Item, Int]) extends AnyVal {

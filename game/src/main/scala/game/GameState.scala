@@ -22,7 +22,7 @@ sealed trait RandomOutcome extends Outcome {
 }
 
 case class Moved(direction: Direction) extends CertainOutcome
-case class Drank(item: Item) extends CertainOutcome
+case class Drank(potion: Potion) extends CertainOutcome
 case class DoorOpened(target: Position) extends CertainOutcome
 case class LinearDamage(target: Position, valueRange: ClosedInterval) extends RandomOutcome {
   def outcomes: Rand[Set[CertainOutcome]] = {
@@ -53,7 +53,7 @@ case class Move(direction: Direction) extends ActionTarget {
 case class UseItem(item: Item) extends ActionTarget {
   def possibleOutcomes: Set[Outcome] = item match {
     case Gold => Set()
-    case HealthPotion => Set(Drank(item))
+    case potion: Potion => Set(Drank(potion))
   }
 }
 case class OpenDoor(target: Position) extends ActionTarget {
@@ -114,12 +114,18 @@ case class GameState(dungeon: Dungeon, revealedPositions: Set[Position], notific
             case (item, amount) => TargetTaken(sourceBeing.descriptor, amount, item)
           }.toList ++: _)
 
-      case Drank(item) =>
+      case Drank(potion) =>
+        val drinkNotification = PotionDrank(sourceBeing.descriptor, potion)
+        val effectNotification = BeingAffected(sourceBeing.descriptor, potion.effect)
         this
           .modify(_.dungeon.cells.at(sourcePosition).being.each.itemBag)
-          .using(_ - item)
+          .using(_ - potion)
           .modify(_.dungeon.cells.at(sourcePosition).being.each)
-          .using(_.use(item))
+          .setTo(potion.effect match {
+            case FullyHeal => sourceBeing.modify(_.body.health).setTo(sourceBeing.body.fullHealth)
+          })
+          .modify(_.notificationHistory)
+          .using(effectNotification :: drinkNotification :: _)
 
       case DoorOpened(target) =>
         dungeon.cells(target).structure.get match {

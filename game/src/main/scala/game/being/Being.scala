@@ -13,9 +13,4 @@ case class Being(descriptor: BeingDescriptor, body: Body, intelligence: Intellig
     case _ => 0
   }.sum
 
-  def use(item: Item): Being = item match {
-    case Gold => this
-    case HealthPotion => this.modify(_.body.health).setTo(body.fullHealth)
-  }
-
 }
