@@ -8,7 +8,6 @@ import random.RNG._
 trait BeingDescriptor extends Describable {
   def drop: ItemBag
   def isThirdPerson = true
-  val damageRange: ClosedInterval
   val bodyFactory: BodyFactory
   val intelligenceFactory: IntelligenceFactory
 
@@ -27,7 +26,6 @@ case object Player extends BeingDescriptor with Sighted {
   val name = "you"
   override val isProtagonist = true
   def drop = ItemBag(HealthPotion -> 5)
-  val damageRange = ClosedInterval(2, 4)
 
   private val viewportRange = 6
   val lineOfLightRange = Math.ceil(Math.sqrt(2 * Math.pow(viewportRange, 2)))
@@ -51,9 +49,8 @@ case object Player extends BeingDescriptor with Sighted {
 case object Spider extends BeingDescriptor {
   val name = "spider"
   def drop = ItemBag(Gold -> 5)
-  val damageRange = ClosedInterval(1, 2)
 
-  val bodyFactory = new SimpleHumanoidGaussianBodyFactory(meanHealth = 5, variation = 3)
+  val bodyFactory = new SimpleArachnoidGaussianBodyFactory(meanHealth = 5, variation = 3)
 
   val intelligenceFactory = new IntelligenceFactory {
     override def randomNewIntelligence = unit(SimpleAgroIntelligence(maxRange = 4))

@@ -1,15 +1,12 @@
 package game.being
 
+import game.ClosedInterval
 import random.RNG
 import random.RNG._
 
 
 trait Mortal {
   def dead: Boolean
-}
-
-trait Conscious {
-  def unconscious: Boolean
 }
 
 trait Damagable {
@@ -30,17 +27,31 @@ class SimpleHumanoidGaussianBodyFactory(meanHealth: Int, variation: Int) extends
     def randomHealth = RNG.nextGaussianRatio(3)
       .map(ratio => Health((meanHealth - variation + variation * 2 * ratio).round.toInt))
 
-    randomHealth.map(HumanoidBody.apply)
+    randomHealth.map(health => HumanoidBody(health, health))
   }
 }
 
-case class Body(fullHealth: Health, health: Health) extends Conscious with Mortal with Damagable {
+class SimpleArachnoidGaussianBodyFactory(meanHealth: Int, variation: Int) extends BodyFactory {
+
+  def randomNewBody: Rand[Body] = {
+
+    def randomHealth = RNG.nextGaussianRatio(3)
+      .map(ratio => Health((meanHealth - variation + variation * 2 * ratio).round.toInt))
+
+    randomHealth.map(health => ArachnoidBody(health, health))
+  }
+}
+
+sealed trait Body extends Mortal with Damagable {
+  val fullHealth: Health
+  val health: Health
+  def weaponlessDamageRange: ClosedInterval
+}
+case class HumanoidBody(fullHealth: Health, health: Health) extends Body {
   def dead = destroyed
-  def unconscious: Boolean = damagePercentage < 0.3
+  def weaponlessDamageRange = ClosedInterval(2, 4)
 }
-
-object HumanoidBody {
-  def apply(health: Health): Body = Body(health, health)
+case class ArachnoidBody(fullHealth: Health, health: Health) extends Body {
+  def dead = destroyed
+  def weaponlessDamageRange = ClosedInterval(1, 2)
 }
-
-

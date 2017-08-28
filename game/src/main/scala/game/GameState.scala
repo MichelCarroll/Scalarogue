@@ -68,7 +68,7 @@ case class GameState(dungeon: Dungeon, revealedPositions: Set[Position], notific
     val targetPosition = sourcePosition.towards(direction, 1)
     dungeon.cells.get(targetPosition) match {
       case Some(Cell(Some(_), _, _)) =>
-        Set(StrikeBeing(sourceBeing.descriptor.damageRange, targetPosition))
+        Set(StrikeBeing(sourceBeing.body.weaponlessDamageRange, targetPosition))
       case Some(Cell(None, Some(_:Openable), _)) =>
         Set(OpenDoor(targetPosition))
       case Some(cell@Cell(_, _, _)) if cell.passable =>
