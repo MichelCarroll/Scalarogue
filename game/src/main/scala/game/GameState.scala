@@ -51,7 +51,10 @@ case class Move(direction: Direction) extends ActionTarget {
   def possibleOutcomes: Set[Outcome] = Set(Moved(direction))
 }
 case class UseItem(item: Item) extends ActionTarget {
-  def possibleOutcomes: Set[Outcome] = Set(Drank(item))
+  def possibleOutcomes: Set[Outcome] = item match {
+    case Gold => Set()
+    case HealthPotion => Set(Drank(item))
+  }
 }
 case class OpenDoor(target: Position) extends ActionTarget {
   def possibleOutcomes: Set[Outcome] = Set(DoorOpened(target))
