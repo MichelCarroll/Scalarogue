@@ -1,6 +1,6 @@
 package game.being
 
-import game.ClosedInterval
+import game.{ClosedInterval, Item, Weapon}
 import random.RNG
 import random.RNG._
 
@@ -27,7 +27,7 @@ class SimpleHumanoidGaussianBodyFactory(meanHealth: Int, variation: Int) extends
     def randomHealth = RNG.nextGaussianRatio(3)
       .map(ratio => Health((meanHealth - variation + variation * 2 * ratio).round.toInt))
 
-    randomHealth.map(health => HumanoidBody(health, health))
+    randomHealth.map(health => HumanoidBody(health, health, None))
   }
 }
 
@@ -42,16 +42,23 @@ class SimpleArachnoidGaussianBodyFactory(meanHealth: Int, variation: Int) extend
   }
 }
 
+sealed trait Handed extends Body {
+  val holding: Option[Item]
+}
+
 sealed trait Body extends Mortal with Damagable {
   val fullHealth: Health
   val health: Health
-  def weaponlessDamageRange: ClosedInterval
+  def damageRange: ClosedInterval
 }
-case class HumanoidBody(fullHealth: Health, health: Health) extends Body {
+case class HumanoidBody(fullHealth: Health, health: Health, holding: Option[Item]) extends Body with Handed {
   def dead = destroyed
-  def weaponlessDamageRange = ClosedInterval(2, 4)
+  def damageRange = holding match {
+    case Some(weapon:Weapon) => weapon.damageRange
+    case _ => ClosedInterval(2, 4)
+  }
 }
 case class ArachnoidBody(fullHealth: Health, health: Health) extends Body {
   def dead = destroyed
-  def weaponlessDamageRange = ClosedInterval(1, 2)
+  def damageRange = ClosedInterval(1, 2)
 }

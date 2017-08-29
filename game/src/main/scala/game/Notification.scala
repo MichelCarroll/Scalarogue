@@ -36,6 +36,16 @@ trait Notification {
   val message: String
 }
 
+case class ItemStash(by: Describable, item: Item) extends Notification {
+  val verb = if(by.isProtagonist) "stash" else "stashes"
+  val message = s"${by.subject} $verb a ${item.name}"
+}
+
+case class ItemHeld(by: Describable, item: Item) extends Notification {
+  val verb = if(by.isProtagonist) "hold" else "holds"
+  val message = s"${by.subject} $verb a ${item.name}"
+}
+
 case class PotionDrank(by: Describable, potion: Potion) extends Notification {
   val verb = if(by.isProtagonist) "drink" else "drank"
   val message = s"${by.subject} $verb a ${potion.name}"
@@ -47,7 +57,7 @@ case class BeingAffected(by: Describable, beingEffect: BeingEffect) extends Noti
 }
 
 case class TargetTaken(by: Describable, amount: Int, item: Item) extends Notification {
-  val verb = if(by.isProtagonist) "pick up" else "picks up"
+  val verb = if(by.isProtagonist) "pick up and stash" else "picks up and stashes"
   val message = s"${by.subject} $verb $amount ${item.name}"
 }
 

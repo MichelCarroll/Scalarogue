@@ -5,7 +5,7 @@ import dungeon.{Cell, Dungeon}
 import dungeon.generation.DungeonGenerator
 import dungeon.generation.DungeonGenerator.GenerationError
 import dungeon.generation.floorplan.{BSPTree, Floorplan, RandomBSPTreeParameters}
-import game.being.{Being, Player}
+import game.being.{Being, Handed, HumanoidBody, Player}
 import math.{Direction, Position, Size}
 import primitives.Ratio
 import random.RNG
@@ -22,6 +22,8 @@ sealed trait RandomOutcome extends Outcome {
 }
 
 case class Moved(direction: Direction) extends CertainOutcome
+case class Swap(oldItem: Item, newitem: Item) extends CertainOutcome
+case class Hold(item: Item) extends CertainOutcome
 case class Drank(potion: Potion) extends CertainOutcome
 case class DoorOpened(target: Position) extends CertainOutcome
 case class LinearDamage(target: Position, valueRange: ClosedInterval) extends RandomOutcome {
@@ -50,10 +52,18 @@ case class StrikeBeing(damageRange: ClosedInterval, target: Position) extends Ac
 case class Move(direction: Direction) extends ActionTarget {
   def possibleOutcomes: Set[Outcome] = Set(Moved(direction))
 }
-case class UseItem(item: Item) extends ActionTarget {
-  def possibleOutcomes: Set[Outcome] = item match {
-    case Gold => Set()
-    case potion: Potion => Set(Drank(potion))
+case class UseItem(being: Being, item: Item) extends ActionTarget {
+  def possibleOutcomes: Set[Outcome] = {
+    item match {
+      case potion: Potion => Set(Drank(potion))
+      case _ => being.body match {
+        case handedBody: Handed => handedBody.holding match {
+          case Some(heldItem) => Set(Swap(heldItem, item))
+          case None => Set(Hold(item))
+        }
+        case _ => Set()
+      }
+    }
   }
 }
 case class OpenDoor(target: Position) extends ActionTarget {
@@ -68,7 +78,7 @@ case class GameState(dungeon: Dungeon, revealedPositions: Set[Position], notific
     val targetPosition = sourcePosition.towards(direction, 1)
     dungeon.cells.get(targetPosition) match {
       case Some(Cell(Some(_), _, _)) =>
-        Set(StrikeBeing(sourceBeing.body.weaponlessDamageRange, targetPosition))
+        Set(StrikeBeing(sourceBeing.body.damageRange, targetPosition))
       case Some(Cell(None, Some(_:Openable), _)) =>
         Set(OpenDoor(targetPosition))
       case Some(cell@Cell(_, _, _)) if cell.passable =>
@@ -78,18 +88,21 @@ case class GameState(dungeon: Dungeon, revealedPositions: Set[Position], notific
     }
   }
 
-  def actionTargetFromCommand(sourcePosition: Position, command: Command): Option[ActionTarget] = command match {
-    case command: DirectionalCommand => actionTargetAtDirection(sourcePosition, command.direction) match {
-      case set if set.isEmpty => None
-      case nonEmptySet => Some(nonEmptySet.head)
+  def actionTargetFromCommand(sourcePosition: Position, command: Command): Option[ActionTarget] = {
+    val sourceBeing = dungeon.cells(sourcePosition).being.get
+    command match {
+      case command: DirectionalCommand => actionTargetAtDirection(sourcePosition, command.direction) match {
+        case set if set.isEmpty => None
+        case nonEmptySet => Some(nonEmptySet.head)
+      }
+      case Command.Use(itemSlug) =>
+        dungeon.cells(sourcePosition).being.get.itemBag.get(itemSlug).map(UseItem(sourceBeing, _))
     }
-    case Command.Use(itemSlug) =>
-      dungeon.cells(sourcePosition).being.get.itemBag.get(itemSlug).map(UseItem.apply)
   }
 
   def actionTargets(sourcePosition: Position): Set[ActionTarget] = {
     val sourceBeing = dungeon.cells(sourcePosition).being.get
-    val itemActionTargets = sourceBeing.itemBag.items.keys.toSet.map(UseItem.apply)
+    val itemActionTargets = sourceBeing.itemBag.items.keys.toSet.map((item: Item) => UseItem(sourceBeing, item))
     val directionActionTargets = Direction.all.flatMap(actionTargetAtDirection(sourcePosition, _))
 
     itemActionTargets ++ directionActionTargets
@@ -98,6 +111,24 @@ case class GameState(dungeon: Dungeon, revealedPositions: Set[Position], notific
   def materialize(sourcePosition: Position, certainOutcome: CertainOutcome): GameState = {
     val sourceBeing = dungeon.cells(sourcePosition).being.get
     certainOutcome match {
+
+      case Hold(item) =>
+        this
+          .modify(_.dungeon.cells.at(sourcePosition).being.each.itemBag)
+          .using(_ - item)
+          .modify(_.dungeon.cells.at(sourcePosition).being.each.body.when[Handed].holding)
+          .setTo(Some(item))
+          .modify(_.notificationHistory)
+          .using(ItemHeld(sourceBeing.descriptor, item) :: _)
+
+      case Swap(oldItem, newItem) =>
+        this
+          .modify(_.dungeon.cells.at(sourcePosition).being.each.itemBag)
+          .using(_ - newItem + oldItem)
+          .modify(_.dungeon.cells.at(sourcePosition).being.each.body.when[Handed].holding)
+          .setTo(Some(newItem))
+          .modify(_.notificationHistory)
+          .using(ItemHeld(sourceBeing.descriptor, newItem) :: ItemStash(sourceBeing.descriptor, oldItem) :: _)
 
       case Moved(direction) =>
         val destinationPosition = sourcePosition.towards(direction, 1)

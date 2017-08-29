@@ -13,6 +13,10 @@ sealed trait Potion extends Item {
   def effect: BeingEffect
 }
 
+sealed trait Weapon extends Item {
+  def damageRange: ClosedInterval
+}
+
 /**
   * Created by MichelCarroll on 3/28/2017.
   */
@@ -38,6 +42,13 @@ case object HealthPotion extends Potion {
   val effect = FullyHeal
 }
 
+case object Sword extends Weapon {
+  val slug = ItemSlug("sword")
+  val name = "sword"
+  val capitalizedName = "Sword"
+  val damageRange = ClosedInterval(5, 10)
+}
+
 case class ItemBag(items: Map[Item, Int]) extends AnyVal {
 
   //not super optimized. would have been better with a Multiset, but its not ScalaJS compatible
@@ -56,6 +67,10 @@ case class ItemBag(items: Map[Item, Int]) extends AnyVal {
     case amount if amount >= 2 => ItemBag(items.updated(item, amount - 1))
   }
 
+  def +(item: Item): ItemBag = items.get(item) match {
+    case None => ItemBag(items + (item -> 1))
+    case Some(amount) => ItemBag(items.updated(item, amount + 1))
+  }
 }
 
 object ItemBag {

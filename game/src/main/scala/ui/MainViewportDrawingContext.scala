@@ -60,6 +60,7 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D)
           case None =>
         }
         itemBag.items.keys.foreach {
+          case Sword => drawGridCharacter(position, '|', Color.Black)
           case Gold => drawGridImage(imageRepository.gold, position)
           case potion:Potion => drawGridCharacter(position, ',', Color.Red)
         }
