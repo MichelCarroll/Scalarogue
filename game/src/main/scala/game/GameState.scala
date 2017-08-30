@@ -25,6 +25,7 @@ case class PickUp(source: Position, amount: Int, item: Item) extends Event
 case class Drank(source: Position, potion: Potion) extends Event
 case class DoorOpened(source: Position, target: Position) extends Event
 case class Damaged(source: Position, target: Position, value: Int) extends Event
+case class Died(source: Position) extends Event
 
 
 case class GameState(dungeon: Dungeon, revealedPositions: Set[Position], notificationHistory: List[Notification]) {
@@ -41,10 +42,15 @@ case class GameState(dungeon: Dungeon, revealedPositions: Set[Position], notific
       val target = source.towards(direction, 1)
       dungeon.cells.get(target) match {
 
-        case Some(Cell(Some(_), _, _)) =>
-          Some(sourceBeing.body.damageRange.values.toSet.map((damage:Int) =>
-            1 -> List(Damaged(source, target, damage))
-          ))
+        case Some(Cell(Some(targetBeing), _, _)) =>
+          Some(
+            sourceBeing.body.damageRange.values.toSet.map((damage:Int) =>
+              if(targetBeing.body.modify(_.health.value).using(_ - damage).destroyed)
+                1 -> List(Damaged(source, target, damage), Died(target))
+              else
+                1 -> List(Damaged(source, target, damage))
+            )
+          )
 
         case Some(Cell(None, Some(_:Openable), _)) =>
           Some(certainOutcome(List(DoorOpened(source, target))))
@@ -152,29 +158,29 @@ case class GameState(dungeon: Dungeon, revealedPositions: Set[Position], notific
           case _ => this
         }
 
+      case Died(target) =>
+        val targetBeing = dungeon.cells.get(target).get.being.get
+
+        def deathNotifications =
+            TargetDies(targetBeing.descriptor) :: targetBeing.itemBag.items.map {
+              case (item, amount) => TargetDropsItem(targetBeing.descriptor, amount, item)
+            }.toList
+
+          this
+            .modify(_.dungeon.cells.at(target).being).setTo(None)
+            .modify(_.dungeon.cells.at(target).itemBag).using(_ + targetBeing.itemBag)
+          .modify(_.notificationHistory).using(deathNotifications ++: _)
+
       case Damaged(source, target, damage) =>
         val sourceBeing = dungeon.cells(source).being.get
         val targetBeing = dungeon.cells.get(target).get.being.get
           .modify(_.body.health.value).using(_ - damage)
 
-        def hitNotifications = List(TargetHit(sourceBeing.descriptor, targetBeing.descriptor, damage))
-        def deathNotifications =
-          if(targetBeing.body.dead)
-            TargetDies(targetBeing.descriptor) :: targetBeing.itemBag.items.map {
-              case (item, amount) => TargetDropsItem(targetBeing.descriptor, amount, item)
-            }.toList
-          else List()
+        def hitNotification = TargetHit(sourceBeing.descriptor, targetBeing.descriptor, damage)
 
-        (
-          if (targetBeing.body.dead)
-            this
-              .modify(_.dungeon.cells.at(target).being).setTo(None)
-              .modify(_.dungeon.cells.at(target).itemBag).using(_ + targetBeing.itemBag)
-          else
-            this
-              .modify(_.dungeon.cells.at(target).being).setTo(Some(targetBeing))
-          )
-          .modify(_.notificationHistory).using((deathNotifications ++ hitNotifications) ++: _)
+        this
+          .modify(_.dungeon.cells.at(target).being).setTo(Some(targetBeing))
+          .modify(_.notificationHistory).using(hitNotification :: _)
     }
   }
 
