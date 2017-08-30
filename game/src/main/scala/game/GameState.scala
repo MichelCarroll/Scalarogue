@@ -19,10 +19,10 @@ case class ClosedInterval(min: Int, max: Int) {
 
 sealed trait Event
 case class Moved(source: Position, direction: Direction) extends Event
-case class Stash(source: Position, item: Item) extends Event
-case class Hold(source: Position, item: Item) extends Event
-case class PickUp(source: Position, amount: Int, item: Item) extends Event
-case class Drank(source: Position, potion: Potion) extends Event
+case class Stashed(source: Position, item: Item) extends Event
+case class Held(source: Position, item: Item) extends Event
+case class PickedUp(source: Position, amount: Int, item: Item) extends Event
+case class PotionDrinked(source: Position, potion: Potion) extends Event
 case class DoorOpened(source: Position, target: Position) extends Event
 case class Damaged(source: Position, target: Position, value: Int) extends Event
 case class Died(source: Position) extends Event
@@ -56,7 +56,7 @@ case class GameState(dungeon: Dungeon, revealedPositions: Set[Position], notific
           Some(certainOutcome(List(DoorOpened(source, target))))
 
         case Some(cell@Cell(_, _, itemBag)) if cell.passable =>
-          val pickUps = itemBag.items.map { case (item, n) => PickUp(target, n, item) }.toList
+          val pickUps = itemBag.items.map { case (item, n) => PickedUp(target, n, item) }.toList
           Some(certainOutcome(Moved(source, direction) :: pickUps))
 
         case _ => None
@@ -68,15 +68,15 @@ case class GameState(dungeon: Dungeon, revealedPositions: Set[Position], notific
     val itemsActionTargets: Map[Command, ActionTarget] = sourceBeing.itemBag.items.keys.flatMap { item =>
       val mappings: Set[(Command, ActionTarget)] = item match {
         case potion: Potion =>
-          Set(Use(potion.slug) -> certainOutcome(List(Drank(source, potion))))
+          Set(Use(potion.slug) -> certainOutcome(List(PotionDrinked(source, potion))))
 
         case _ => sourceBeing.body match {
           case handedBody: Handed => handedBody.holding match {
             case Some(heldItem) =>
-              Set(Use(item.slug) -> certainOutcome(List(Stash(source, heldItem), Hold(source, item))))
+              Set(Use(item.slug) -> certainOutcome(List(Stashed(source, heldItem), Held(source, item))))
 
             case None =>
-              Set(Use(item.slug) -> certainOutcome(List(Hold(source, item))))
+              Set(Use(item.slug) -> certainOutcome(List(Held(source, item))))
           }
           case _ =>
             Set()
@@ -96,7 +96,7 @@ case class GameState(dungeon: Dungeon, revealedPositions: Set[Position], notific
   def materialize(event: Event): GameState = {
     event match {
 
-      case Hold(source, item) =>
+      case Held(source, item) =>
         val sourceBeing = dungeon.cells(source).being.get
         this
           .modify(_.dungeon.cells.at(source).being.each.itemBag)
@@ -106,7 +106,7 @@ case class GameState(dungeon: Dungeon, revealedPositions: Set[Position], notific
           .modify(_.notificationHistory)
           .using(ItemHeld(sourceBeing.descriptor, item) :: _)
 
-      case Stash(source, item) =>
+      case Stashed(source, item) =>
         val sourceBeing = dungeon.cells(source).being.get
         this
           .modify(_.dungeon.cells.at(source).being.each.itemBag)
@@ -116,7 +116,7 @@ case class GameState(dungeon: Dungeon, revealedPositions: Set[Position], notific
           .modify(_.notificationHistory)
           .using(ItemStash(sourceBeing.descriptor, item) :: _)
 
-      case PickUp(source, amount, item) =>
+      case PickedUp(source, amount, item) =>
         val sourceBeing = dungeon.cells(source).being.get
         this
           .modify(_.dungeon.cells.at(source).being)
@@ -135,7 +135,7 @@ case class GameState(dungeon: Dungeon, revealedPositions: Set[Position], notific
           .modify(_.dungeon.cells.at(destinationPosition).being)
           .setTo(Some(sourceBeing))
 
-      case Drank(source, potion) =>
+      case PotionDrinked(source, potion) =>
         val sourceBeing = dungeon.cells(source).being.get
         val drinkNotification = PotionDrank(sourceBeing.descriptor, potion)
         val effectNotification = BeingAffected(sourceBeing.descriptor, potion.effect)
@@ -166,9 +166,9 @@ case class GameState(dungeon: Dungeon, revealedPositions: Set[Position], notific
               case (item, amount) => TargetDropsItem(targetBeing.descriptor, amount, item)
             }.toList
 
-          this
-            .modify(_.dungeon.cells.at(target).being).setTo(None)
-            .modify(_.dungeon.cells.at(target).itemBag).using(_ + targetBeing.itemBag)
+        this
+          .modify(_.dungeon.cells.at(target).being).setTo(None)
+          .modify(_.dungeon.cells.at(target).itemBag).using(_ + targetBeing.itemBag)
           .modify(_.notificationHistory).using(deathNotifications ++: _)
 
       case Damaged(source, target, damage) =>
