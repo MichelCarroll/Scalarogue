@@ -5,7 +5,7 @@ import game.being.{Player, Spider}
 import math.Position
 import org.scalajs.dom
 import org.scalajs.dom.ext.Color
-import random.SimpleRNG
+import random.{RNG, SimpleRNG}
 import ui.GameDisplayAdapter
 import com.softwaremill.quicklens._
 
@@ -34,11 +34,13 @@ class Game(seed: Long, displayAdapter: GameDisplayAdapter) {
 
     gameState.dungeon.playerPosition.foreach(playerPosition => {
 
+      ()
+
       gameState = gameState.actionTargetMapping(playerPosition).get(playerCommand) match {
         case Some(actionTarget) =>
-//          val (certainOutcomes, newRng) = actionTarget.outcomes(rng)
-//          rng = newRng
-          actionTarget.foldLeft(gameState)(_.materialize(_))
+          val (outcome, newRng) = RNG.nextInWeightedSet(actionTarget)(rng)
+          rng = newRng
+          outcome.foldLeft(gameState)(_.materialize(_))
 
         case None => gameState
       }
@@ -61,9 +63,9 @@ class Game(seed: Long, displayAdapter: GameDisplayAdapter) {
 
             commandOpt.flatMap(lastState.actionTargetMapping(beingPosition).get) match {
               case Some(actionTarget) =>
-//                val (certainOutcomes, newRng) = actionTarget.outcomes(rng)
-//                rng = newRng
-                actionTarget.foldLeft(lastState)(_.materialize(_))
+                val (outcome, newRng) = RNG.nextInWeightedSet(actionTarget)(rng)
+                rng = newRng
+                outcome.foldLeft(lastState)(_.materialize(_))
 
               case None => lastState
             }

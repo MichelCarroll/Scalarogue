@@ -13,37 +13,47 @@ import com.softwaremill.quicklens._
 import game.Command.Use
 
 
-case class ClosedInterval(min: Int, max: Int)
+case class ClosedInterval(min: Int, max: Int) {
+  def values = min to max
+}
 
-sealed trait Outcome
-case class Moved(source: Position, direction: Direction) extends Outcome
-case class Stash(source: Position, item: Item) extends Outcome
-case class Hold(source: Position, item: Item) extends Outcome
-case class PickUp(source: Position, amount: Int, item: Item) extends Outcome
-case class Drank(source: Position, potion: Potion) extends Outcome
-case class DoorOpened(source: Position, target: Position) extends Outcome
-case class Damaged(source: Position, target: Position, value: Int) extends Outcome
+sealed trait Event
+case class Moved(source: Position, direction: Direction) extends Event
+case class Stash(source: Position, item: Item) extends Event
+case class Hold(source: Position, item: Item) extends Event
+case class PickUp(source: Position, amount: Int, item: Item) extends Event
+case class Drank(source: Position, potion: Potion) extends Event
+case class DoorOpened(source: Position, target: Position) extends Event
+case class Damaged(source: Position, target: Position, value: Int) extends Event
 
 
 case class GameState(dungeon: Dungeon, revealedPositions: Set[Position], notificationHistory: List[Notification]) {
 
-  type ActionTarget = List[Outcome]
+  type WeightedOutcome = (Int, List[Event])
+  type ActionTarget = Set[WeightedOutcome]
 
   def actionTargetMapping(source: Position): Map[Command, ActionTarget] = {
+
+    def certainOutcome(events: List[Event]) = Set(1 -> events)
 
     def actionTargetAtDirection(direction: Direction): Option[ActionTarget] = {
       val sourceBeing = dungeon.cells(source).being.get
       val target = source.towards(direction, 1)
       dungeon.cells.get(target) match {
+
         case Some(Cell(Some(_), _, _)) =>
-          Some(List(Damaged(source, target, sourceBeing.body.damageRange.min)))
+          Some(sourceBeing.body.damageRange.values.toSet.map((damage:Int) =>
+            1 -> List(Damaged(source, target, damage))
+          ))
+
         case Some(Cell(None, Some(_:Openable), _)) =>
-          Some(List(DoorOpened(source, target)))
+          Some(certainOutcome(List(DoorOpened(source, target))))
+
         case Some(cell@Cell(_, _, itemBag)) if cell.passable =>
           val pickUps = itemBag.items.map { case (item, n) => PickUp(target, n, item) }.toList
-          Some(Moved(source, direction) :: pickUps)
-        case _ =>
-          None
+          Some(certainOutcome(Moved(source, direction) :: pickUps))
+
+        case _ => None
       }
     }
 
@@ -51,13 +61,19 @@ case class GameState(dungeon: Dungeon, revealedPositions: Set[Position], notific
 
     val itemsActionTargets: Map[Command, ActionTarget] = sourceBeing.itemBag.items.keys.flatMap { item =>
       val mappings: Set[(Command, ActionTarget)] = item match {
-        case potion: Potion => Set(Use(potion.slug) -> List(Drank(source, potion)))
+        case potion: Potion =>
+          Set(Use(potion.slug) -> certainOutcome(List(Drank(source, potion))))
+
         case _ => sourceBeing.body match {
           case handedBody: Handed => handedBody.holding match {
-            case Some(heldItem) => Set(Use(item.slug) -> List(Stash(source, heldItem), Hold(source, item)))
-            case None => Set(Use(item.slug) -> List(Hold(source, item)))
+            case Some(heldItem) =>
+              Set(Use(item.slug) -> certainOutcome(List(Stash(source, heldItem), Hold(source, item))))
+
+            case None =>
+              Set(Use(item.slug) -> certainOutcome(List(Hold(source, item))))
           }
-          case _ => Set()
+          case _ =>
+            Set()
         }
       }
       mappings
@@ -71,8 +87,8 @@ case class GameState(dungeon: Dungeon, revealedPositions: Set[Position], notific
   }
 
 
-  def materialize(outcome: Outcome): GameState = {
-    outcome match {
+  def materialize(event: Event): GameState = {
+    event match {
 
       case Hold(source, item) =>
         val sourceBeing = dungeon.cells(source).being.get
