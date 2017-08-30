@@ -15,10 +15,7 @@ import game.Command.Use
 
 case class ClosedInterval(min: Int, max: Int)
 
-sealed trait Outcome {
-  def source: Position
-}
-
+sealed trait Outcome
 case class Moved(source: Position, direction: Direction) extends Outcome
 case class Stash(source: Position, item: Item) extends Outcome
 case class Hold(source: Position, item: Item) extends Outcome
@@ -75,10 +72,10 @@ case class GameState(dungeon: Dungeon, revealedPositions: Set[Position], notific
 
 
   def materialize(outcome: Outcome): GameState = {
-    val sourceBeing = dungeon.cells(outcome.source).being.get
     outcome match {
 
       case Hold(source, item) =>
+        val sourceBeing = dungeon.cells(source).being.get
         this
           .modify(_.dungeon.cells.at(source).being.each.itemBag)
           .using(_ - item)
@@ -88,6 +85,7 @@ case class GameState(dungeon: Dungeon, revealedPositions: Set[Position], notific
           .using(ItemHeld(sourceBeing.descriptor, item) :: _)
 
       case Stash(source, item) =>
+        val sourceBeing = dungeon.cells(source).being.get
         this
           .modify(_.dungeon.cells.at(source).being.each.itemBag)
           .using(_ + item)
@@ -97,6 +95,7 @@ case class GameState(dungeon: Dungeon, revealedPositions: Set[Position], notific
           .using(ItemStash(sourceBeing.descriptor, item) :: _)
 
       case PickUp(source, amount, item) =>
+        val sourceBeing = dungeon.cells(source).being.get
         this
           .modify(_.dungeon.cells.at(source).being)
           .setTo(Some(sourceBeing.modify(_.itemBag).using(_ +(item, amount))))
@@ -106,6 +105,7 @@ case class GameState(dungeon: Dungeon, revealedPositions: Set[Position], notific
           .using(TargetTaken(sourceBeing.descriptor, amount, item) :: _)
 
       case Moved(source, direction) =>
+        val sourceBeing = dungeon.cells(source).being.get
         val destinationPosition = source.towards(direction, 1)
         this
           .modify(_.dungeon.cells.at(source).being)
@@ -114,6 +114,7 @@ case class GameState(dungeon: Dungeon, revealedPositions: Set[Position], notific
           .setTo(Some(sourceBeing))
 
       case Drank(source, potion) =>
+        val sourceBeing = dungeon.cells(source).being.get
         val drinkNotification = PotionDrank(sourceBeing.descriptor, potion)
         val effectNotification = BeingAffected(sourceBeing.descriptor, potion.effect)
         this
@@ -127,6 +128,7 @@ case class GameState(dungeon: Dungeon, revealedPositions: Set[Position], notific
           .using(effectNotification :: drinkNotification :: _)
 
       case DoorOpened(source, target) =>
+        val sourceBeing = dungeon.cells(source).being.get
         dungeon.cells(target).structure.get match {
           case openable: Openable => this
             .modify(_.dungeon.cells.at(target).structure).setTo(Some(openable.opened))
@@ -135,6 +137,7 @@ case class GameState(dungeon: Dungeon, revealedPositions: Set[Position], notific
         }
 
       case Damaged(source, target, damage) =>
+        val sourceBeing = dungeon.cells(source).being.get
         val targetBeing = dungeon.cells.get(target).get.being.get
           .modify(_.body.health.value).using(_ - damage)
 
