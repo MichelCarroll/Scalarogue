@@ -34,11 +34,11 @@ class Game(seed: Long, displayAdapter: GameDisplayAdapter) {
 
     gameState.dungeon.playerPosition.foreach(playerPosition => {
 
-      gameState = gameState.actionTargetFromCommand(playerPosition, playerCommand) match {
+      gameState = gameState.actionTargetMapping(playerPosition).get(playerCommand) match {
         case Some(actionTarget) =>
-          val (certainOutcomes, newRng) = actionTarget.outcomes(rng)
-          rng = newRng
-          certainOutcomes.foldLeft(gameState)(_.materialize(playerPosition, _))
+//          val (certainOutcomes, newRng) = actionTarget.outcomes(rng)
+//          rng = newRng
+          actionTarget.foldLeft(gameState)(_.materialize(_))
 
         case None => gameState
       }
@@ -59,11 +59,11 @@ class Game(seed: Long, displayAdapter: GameDisplayAdapter) {
             val (commandOpt, newRng) = being.intelligence.nextCommand(beingPosition, lastState.dungeon)(rng)
             this.rng = newRng
 
-            commandOpt.flatMap(lastState.actionTargetFromCommand(beingPosition, _)) match {
+            commandOpt.flatMap(lastState.actionTargetMapping(beingPosition).get) match {
               case Some(actionTarget) =>
-                val (certainOutcomes, newRng) = actionTarget.outcomes(rng)
-                rng = newRng
-                certainOutcomes.foldLeft(lastState)(_.materialize(beingPosition, _))
+//                val (certainOutcomes, newRng) = actionTarget.outcomes(rng)
+//                rng = newRng
+                actionTarget.foldLeft(lastState)(_.materialize(_))
 
               case None => lastState
             }
@@ -71,9 +71,6 @@ class Game(seed: Long, displayAdapter: GameDisplayAdapter) {
         })
 
     })
-
-    //debug
-    gameState.dungeon.playerPosition.foreach(position => println(gameState.actionTargets(position)))
 
     gameState.dungeon.playerPosition.foreach(redraw(gameState, _))
     displayAdapter.updateState(gameState)

@@ -71,6 +71,16 @@ case class ItemBag(items: Map[Item, Int]) extends AnyVal {
     case None => ItemBag(items + (item -> 1))
     case Some(amount) => ItemBag(items.updated(item, amount + 1))
   }
+
+  def +(item: Item, amount: Int): ItemBag = items.get(item) match {
+    case None => ItemBag(items + (item -> amount))
+    case Some(i) => ItemBag(items.updated(item, i + amount))
+  }
+
+  def -(item: Item, amount: Int): ItemBag = items(item) match {
+    case i if i == amount => ItemBag(items - item)
+    case i if i > amount => ItemBag(items.updated(item, i - amount))
+  }
 }
 
 object ItemBag {
