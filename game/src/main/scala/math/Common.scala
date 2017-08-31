@@ -28,6 +28,8 @@ case class Position(x: Int, y: Int) {
   def vector = Vector(x, y)
 
   def manhattanDistanceTo(other: Position): Int = Math.abs(other.x - x) + Math.abs(other.y - y)
+
+  def +(other: Position) = Position(x + other.x, y + other.y)
 }
 
 case class Angle(radians: Double) {

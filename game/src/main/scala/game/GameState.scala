@@ -34,6 +34,16 @@ case class GameState(dungeon: Dungeon, revealedPositions: Set[Position], notific
   type WeightedOutcome = (Int, List[Event])
   type ActionTarget = Set[WeightedOutcome]
 
+  def lookAt(target: Position): GameState =
+    if(revealedPositions.contains(target))
+      dungeon.cells.get(target) match {
+        case Some(cell) => notify(LookAtCell(cell))
+        case None => notify(LookAtDarkness)
+      }
+    else
+      notify(LookAtDarkness)
+
+
   def withUpdatedRevealedPositions: GameState =
     this.dungeon.playerPosition match {
       case Some(position) => this
@@ -47,7 +57,7 @@ case class GameState(dungeon: Dungeon, revealedPositions: Set[Position], notific
     def certainOutcome(events: List[Event]) = Set(1 -> events)
 
     def actionTargetAtDirection(direction: Direction): Option[ActionTarget] = {
-      val sourceBeing = dungeon.cells(source).being.get
+      val sourceBeing = dungeon.cells(source).beingOpt.get
       val target = source.towards(direction, 1)
       dungeon.cells.get(target) match {
 
@@ -74,7 +84,7 @@ case class GameState(dungeon: Dungeon, revealedPositions: Set[Position], notific
       }
     }
 
-    val sourceBeing = dungeon.cells(source).being.get
+    val sourceBeing = dungeon.cells(source).beingOpt.get
 
     val itemsActionTargets: Map[Command, ActionTarget] = sourceBeing.itemBag.items.keys.flatMap { item =>
       val mappings: Set[(Command, ActionTarget)] = item match {
@@ -110,87 +120,87 @@ case class GameState(dungeon: Dungeon, revealedPositions: Set[Position], notific
     event match {
 
       case Held(source, item) =>
-        val sourceBeing = dungeon.cells(source).being.get
+        val sourceBeing = dungeon.cells(source).beingOpt.get
         this
-          .modify(_.dungeon.cells.at(source).being.each.itemBag)
+          .modify(_.dungeon.cells.at(source).beingOpt.each.itemBag)
           .using(_ - item)
-          .modify(_.dungeon.cells.at(source).being.each.body.when[Handed].holding)
+          .modify(_.dungeon.cells.at(source).beingOpt.each.body.when[Handed].holding)
           .setTo(Some(item))
           .notify(ItemHeld(sourceBeing.descriptor, item))
 
       case Stashed(source, item) =>
-        val sourceBeing = dungeon.cells(source).being.get
+        val sourceBeing = dungeon.cells(source).beingOpt.get
         this
-          .modify(_.dungeon.cells.at(source).being.each.itemBag)
+          .modify(_.dungeon.cells.at(source).beingOpt.each.itemBag)
           .using(_ + item)
-          .modify(_.dungeon.cells.at(source).being.each.body.when[Handed].holding)
+          .modify(_.dungeon.cells.at(source).beingOpt.each.body.when[Handed].holding)
           .setTo(None)
           .notify(ItemStash(sourceBeing.descriptor, item))
 
       case PickedUp(source, amount, item) =>
-        val sourceBeing = dungeon.cells(source).being.get
+        val sourceBeing = dungeon.cells(source).beingOpt.get
         this
-          .modify(_.dungeon.cells.at(source).being)
+          .modify(_.dungeon.cells.at(source).beingOpt)
           .setTo(Some(sourceBeing.modify(_.itemBag).using(_ +(item, amount))))
           .modify(_.dungeon.cells.at(source).itemBag)
           .using(_ -(item, amount))
           .notify(TargetTaken(sourceBeing.descriptor, amount, item))
 
       case Dropped(source, amount, item) =>
-        val sourceBeing = dungeon.cells(source).being.get
+        val sourceBeing = dungeon.cells(source).beingOpt.get
         this
           .modify(_.dungeon.cells.at(source).itemBag)
           .using(_ +(item, amount))
-          .modify(_.dungeon.cells.at(source).being.each.itemBag)
+          .modify(_.dungeon.cells.at(source).beingOpt.each.itemBag)
           .using(_ -(item, amount))
           .notify(TargetDropsItem(sourceBeing.descriptor, amount, item))
 
       case Moved(source, direction) =>
-        val sourceBeing = dungeon.cells(source).being.get
+        val sourceBeing = dungeon.cells(source).beingOpt.get
         val destinationPosition = source.towards(direction, 1)
         this
-          .modify(_.dungeon.cells.at(source).being)
+          .modify(_.dungeon.cells.at(source).beingOpt)
           .setTo(None)
-          .modify(_.dungeon.cells.at(destinationPosition).being)
+          .modify(_.dungeon.cells.at(destinationPosition).beingOpt)
           .setTo(Some(sourceBeing))
 
       case PotionDrinked(source, potion) =>
-        val sourceBeing = dungeon.cells(source).being.get
+        val sourceBeing = dungeon.cells(source).beingOpt.get
         this
-          .modify(_.dungeon.cells.at(source).being.each)
+          .modify(_.dungeon.cells.at(source).beingOpt.each)
           .setTo(potion.effect match {
             case FullyHeal => sourceBeing.modify(_.body.health).setTo(sourceBeing.body.fullHealth)
           })
-          .modify(_.dungeon.cells.at(source).being.each.itemBag)
+          .modify(_.dungeon.cells.at(source).beingOpt.each.itemBag)
           .using(_ - potion)
           .notify(PotionDrank(sourceBeing.descriptor, potion))
           .notify(BeingAffected(sourceBeing.descriptor, potion.effect))
 
       case DoorOpened(source, target) =>
-        val sourceBeing = dungeon.cells(source).being.get
-        dungeon.cells(target).structure.get match {
+        val sourceBeing = dungeon.cells(source).beingOpt.get
+        dungeon.cells(target).structureOpt.get match {
           case openable: Openable => this
-            .modify(_.dungeon.cells.at(target).structure)
+            .modify(_.dungeon.cells.at(target).structureOpt)
             .setTo(Some(openable.opened))
             .notify(TargetOpened(sourceBeing.descriptor, openable))
           case _ => this
         }
 
       case Died(target) =>
-        val targetBeing = dungeon.cells.get(target).get.being.get
+        val targetBeing = dungeon.cells.get(target).get.beingOpt.get
 
         this
-          .modify(_.dungeon.cells.at(target).being)
+          .modify(_.dungeon.cells.at(target).beingOpt)
           .setTo(None)
           .notify(TargetDies(targetBeing.descriptor))
 
       case Damaged(source, target, damage) =>
-        val sourceBeing = dungeon.cells(source).being.get
-        val targetBeing = dungeon.cells.get(target).get.being.get
+        val sourceBeing = dungeon.cells(source).beingOpt.get
+        val targetBeing = dungeon.cells.get(target).get.beingOpt.get
           .modify(_.body.health.value).using(_ - damage)
 
         this
-          .modify(_.dungeon.cells.at(target).being)
+          .modify(_.dungeon.cells.at(target).beingOpt)
           .setTo(Some(targetBeing))
           .notify(TargetHit(sourceBeing.descriptor, targetBeing.descriptor, damage))
     }

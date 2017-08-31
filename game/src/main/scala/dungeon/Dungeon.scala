@@ -11,7 +11,7 @@ case class Dungeon(cells: Map[Position, Cell], area: Area, entrancePosition: Pos
 
   def update(position: Position, being: Being) =  copy(
     cells = cells.get(position) match {
-      case Some(o@Cell(_,_,_)) => cells.updated(position, o.copy(being = Some(being)))
+      case Some(o@Cell(_,_,_)) => cells.updated(position, o.copy(beingOpt = Some(being)))
       case _ => throw new Exception("You cannot update a closed cell with a being")
     }
   )

@@ -1,6 +1,6 @@
 package game
 
-
+import dungeon.Cell
 
 
 trait Named { self =>
@@ -34,6 +34,14 @@ trait Describable extends Named {
 
 trait Notification {
   val message: String
+}
+
+case object LookAtDarkness extends Notification {
+  val message = s"You look into the dismal abyss."
+}
+
+case class LookAtCell(cell: Cell) extends Notification {
+  val message = s"${cell.description}"
 }
 
 case class ItemStash(by: Describable, item: Item) extends Notification {

@@ -6,7 +6,7 @@ import math.Position
 import org.scalajs.dom
 import org.scalajs.dom.ext.Color
 import random.{RNG, SimpleRNG}
-import ui.GameDisplayAdapter
+import ui.{GameDisplayAdapter, MainViewportDrawingContext}
 import com.softwaremill.quicklens._
 
 /**
@@ -28,7 +28,21 @@ class Game(seed: Long, displayAdapter: GameDisplayAdapter) {
     Command.fromKeyCode(e.keyCode).foreach(executeTurn)
   }
 
-  displayAdapter.updateState(gameState)
+  displayAdapter.viewportCanvas.onmousedown = (e: dom.MouseEvent) => {
+    gameState.dungeon.playerPosition.foreach(playerPosition => {
+      val viewport = MainViewportDrawingContext.viewport(playerPosition)
+      val cellEdge = displayAdapter.mainViewportDrawingContext.cellEdge
+      val relativePosition = Position((e.clientX / cellEdge).toInt, (e.clientY / cellEdge).toInt)
+      val absolutePosition = viewport.topLeft + relativePosition
+      gameState = gameState.lookAt(absolutePosition)
+      this.display()
+    })
+  }
+
+  def display(): Unit = {
+    gameState.dungeon.playerPosition.foreach(redraw(gameState, _))
+    displayAdapter.updateState(gameState)
+  }
 
   def executeTurn(playerCommand: Command) = {
 
@@ -70,8 +84,7 @@ class Game(seed: Long, displayAdapter: GameDisplayAdapter) {
       gameState = withProcessedEnemyTurns
     })
 
-    gameState.dungeon.playerPosition.foreach(redraw(gameState, _))
-    displayAdapter.updateState(gameState)
+    this.display()
   }
 
   private def redraw(gameState: GameState, cameraPosition: Position): Unit = {

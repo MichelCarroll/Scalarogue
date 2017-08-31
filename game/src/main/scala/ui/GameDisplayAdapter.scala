@@ -1,6 +1,7 @@
 package ui
 
 import game.GameState
+import math.Position
 import org.scalajs.dom
 import org.scalajs.dom.html
 
