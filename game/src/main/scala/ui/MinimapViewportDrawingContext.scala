@@ -19,7 +19,7 @@ class MinimapViewportDrawingContext(renderingContext: dom.CanvasRenderingContext
 
   def draw(gameState: GameState, cameraPosition: Position) = {
 
-    val viewport = Player.viewport(cameraPosition)
+
 
     renderingContext.fillStyle = Color.Black.toString
     renderingContext.fillRect(
@@ -45,6 +45,8 @@ class MinimapViewportDrawingContext(renderingContext: dom.CanvasRenderingContext
         cellEdge
       )
     }
+
+    val viewport = MainViewportDrawingContext.viewport(cameraPosition)
 
     (viewport.positions intersect openPositions intersect gameState.revealedPositions)
       .foreach(position => drawCell(position, Color.Green))

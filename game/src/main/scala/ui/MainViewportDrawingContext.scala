@@ -7,6 +7,28 @@ import org.scalajs.dom
 import math._
 import org.scalajs.dom.ext.Color
 
+object Colors {
+
+  object Red {
+    val Ketchup = Color("#F23C39")
+    val Rust = Color("#A94335")
+  }
+
+  object Yellow {
+    val Mustard = Color("#FBC736")
+  }
+
+}
+
+object MainViewportDrawingContext {
+
+  val viewportRange = (Player.lineOfLightRange * 2.0).ceil.toInt
+
+  def viewport(cameraPosition: Position) = Area(
+    Position(cameraPosition.x - viewportRange - 1, cameraPosition.y - viewportRange - 1),
+    Position(cameraPosition.x + viewportRange + 1, cameraPosition.y + viewportRange + 1)
+  )
+}
 
 /**
   * Created by MichelCarroll on 3/28/2017.
@@ -21,12 +43,12 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D)
     Position(0, 0),
     Size(renderingContext.canvas.width, renderingContext.canvas.height)
   )
-  val viewportRange = 5
-  val cellEdge = drawingArea.size.width / (viewportRange * 2 + 1).toDouble
+
+  val cellEdge = drawingArea.size.width / (MainViewportDrawingContext.viewportRange * 2 + 1).toDouble
 
   def drawFromPerspective(gameState: GameState, cameraPosition: Position) = {
 
-    val viewport = Player.viewport(cameraPosition)
+    val viewport = MainViewportDrawingContext.viewport(cameraPosition)
 
     renderingContext.fillStyle = Color.Black.toString
     renderingContext.fillRect(
@@ -43,29 +65,31 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D)
       .toMap
 
     cellsInLineOfSight.foreach {
-      case (position, Some(Cell(being, structure, itemBag))) =>
-        drawGridImage(imageRepository.floor, position)
-        structure match {
-          case Some(ClosedDoor) => drawGridImage(imageRepository.closed_door, position)
-          case Some(OpenedDoor) => drawGridImage(imageRepository.open_door, position)
-          case Some(Downstairs) => drawGridImage(imageRepository.downstairs, position)
-          case Some(Upstairs) =>   drawGridImage(imageRepository.upstairs, position)
-          case None =>
-        }
-        being match {
-          case Some(Being(beingDescriptor, _, _, _)) => beingDescriptor match {
-            case Player => drawGridImage(imageRepository.nugget, position)
-            case Spider => drawGridImage(imageRepository.spider, position)
-          }
-          case None =>
-        }
-        itemBag.items.keys.foreach {
-          case Sword => drawGridCharacter(position, '|', Color.Black)
-          case Gold => drawGridImage(imageRepository.gold, position)
+
+      case (position, Some(Cell(Some(Being(descriptor, _, _, _)), structure, _))) => descriptor match {
+        case Player => drawGridCharacter(position, '@', Colors.Red.Ketchup)
+        case Spider => drawGridCharacter(position, 's', Colors.Red.Rust)
+      }
+
+      case (position, Some(Cell(None, Some(structure), _))) => structure match {
+        case ClosedDoor => drawGridCharacter(position, '%', Colors.Yellow.Mustard)
+        case OpenedDoor => drawGridCharacter(position, '.', Colors.Yellow.Mustard)
+        case Downstairs => drawGridCharacter(position, '<', Colors.Yellow.Mustard)
+        case Upstairs =>   drawGridCharacter(position, '>', Colors.Yellow.Mustard)
+      }
+
+      case (position, Some(Cell(None, None, itemBag))) if itemBag.items.nonEmpty =>
+        itemBag.items.head._1 match {
+          case Sword => drawGridCharacter(position, '|', Color.White)
+          case Gold => drawGridCharacter(position, '$', Colors.Yellow.Mustard)
           case potion:Potion => drawGridCharacter(position, ',', Color.Red)
         }
+
+      case (position, Some(Cell(_ ,_, _))) =>
+        drawGridCharacter(position, '.', Colors.Yellow.Mustard)
+
       case (position, None) =>
-        drawGridImage(imageRepository.wall, position)
+        drawGridCharacter(position, '#', Colors.Yellow.Mustard)
     }
 
     //debug
@@ -102,7 +126,7 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D)
       renderingContext.save()
       renderingContext.translate(pos.x, pos.y)
       renderingContext.fillStyle = color.toString()
-      renderingContext.font = "40px monospace"
+      renderingContext.font = "16px Verdana"
       renderingContext.textBaseline = "middle"
       renderingContext.textAlign = "center"
       renderingContext.fillText(character.toString, cellEdge / 2, cellEdge / 2, cellEdge)

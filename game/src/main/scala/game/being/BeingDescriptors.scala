@@ -27,13 +27,7 @@ case object Player extends BeingDescriptor with Sighted {
   override val isProtagonist = true
   def drop = ItemBag(HealthPotion -> 5)
 
-  private val viewportRange = 6
-  val lineOfLightRange = Math.ceil(Math.sqrt(2 * Math.pow(viewportRange, 2)))
-
-  def viewport(position: Position) = Area(
-    Position(position.x - viewportRange + 1, position.y - viewportRange + 1),
-    Position(position.x + viewportRange - 1, position.y + viewportRange - 1)
-  )
+  val lineOfLightRange = 10
 
   val bodyFactory = new BodyFactory {
     override def randomNewBody = new SimpleHumanoidGaussianBodyFactory(meanHealth = 20, variation = 3).randomNewBody
