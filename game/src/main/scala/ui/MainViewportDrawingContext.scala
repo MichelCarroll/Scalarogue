@@ -177,19 +177,6 @@ class MainViewportDrawingContext(renderingContext: dom.CanvasRenderingContext2D)
         drawGridLine(CanvasPosition(0, y * cellEdge), CanvasPosition(viewport.size.width * cellEdge, y * cellEdge))
     }
 
-    def drawPathToClosestSpider() = {
-      gameState.dungeon.beingOfTypePositions(Spider) match {
-        case spiderPositions if spiderPositions.isEmpty => None
-        case spiderPositions =>
-          gameState.dungeon.bestDirectionTo(
-            cameraPosition,
-            spiderPositions.minBy(_.manhattanDistanceTo(cameraPosition))
-          ).map(cameraPosition.towards(_, 1))
-      }
-    } match {
-      case Some(position) => drawDot(position, Color.Red)
-      case _ =>
-    }
   }
 
 

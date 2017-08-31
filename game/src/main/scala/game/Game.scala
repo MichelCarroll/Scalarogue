@@ -32,28 +32,21 @@ class Game(seed: Long, displayAdapter: GameDisplayAdapter) {
 
   def executeTurn(playerCommand: Command) = {
 
-    gameState.dungeon.playerPosition.foreach(playerPosition => {
-
-      ()
-
-      gameState = gameState.actionTargetMapping(playerPosition).get(playerCommand) match {
+    def withProcessedPlayerTurn(playerPosition: Position): GameState =
+      gameState.actionTargetMapping(playerPosition).get(playerCommand) match {
         case Some(actionTarget) =>
           val (outcome, newRng) = RNG.nextInWeightedSet(actionTarget)(rng)
           rng = newRng
-          outcome.foldLeft(gameState)(_.materialize(_))
+          outcome
+            .foldLeft(gameState)(_.materialize(_))
+            .withUpdatedRevealedPositions
 
         case None => gameState
       }
 
-      gameState = gameState.dungeon.playerPosition match {
-        case Some(position) =>
-          gameState
-            .modify(_.revealedPositions)
-            .using(_ ++ Player.positionsWithinRangeTouchedByPerimeterRay(position, gameState.dungeon))
-        case _ => gameState
-      }
 
-      gameState = gameState.dungeon
+    def withProcessedEnemyTurns: GameState =
+      gameState.dungeon
         .beingOfTypePositions(Spider)
         .foldLeft(gameState)((lastState, beingPosition) => lastState.dungeon.cells(beingPosition) match {
           case Cell(Some(being), _, _) =>
@@ -72,6 +65,9 @@ class Game(seed: Long, displayAdapter: GameDisplayAdapter) {
           case _ => lastState
         })
 
+    gameState.dungeon.playerPosition.foreach(playerPosition => {
+      gameState = withProcessedPlayerTurn(playerPosition)
+      gameState = withProcessedEnemyTurns
     })
 
     gameState.dungeon.playerPosition.foreach(redraw(gameState, _))

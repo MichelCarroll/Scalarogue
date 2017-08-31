@@ -28,11 +28,19 @@ case class DoorOpened(source: Position, target: Position) extends Event
 case class Damaged(source: Position, target: Position, value: Int) extends Event
 case class Died(source: Position) extends Event
 
-
 case class GameState(dungeon: Dungeon, revealedPositions: Set[Position], notificationHistory: List[Notification]) {
 
+  type TurnAmount = Int
   type WeightedOutcome = (Int, List[Event])
   type ActionTarget = Set[WeightedOutcome]
+
+  def withUpdatedRevealedPositions: GameState =
+    this.dungeon.playerPosition match {
+      case Some(position) => this
+          .modify(_.revealedPositions)
+          .using(_ ++ Player.positionsWithinRangeTouchedByPerimeterRay(position, dungeon))
+      case _ => this
+    }
 
   def actionTargetMapping(source: Position): Map[Command, ActionTarget] = {
 
