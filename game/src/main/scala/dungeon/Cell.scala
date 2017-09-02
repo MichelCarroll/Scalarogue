@@ -20,21 +20,4 @@ case class Cell(
     case _: Opaque => true
     case _ => false
   }
-
-  def description = {
-    val beingDescriptionOpt = beingOpt.map(being => s"You see a ${being.descriptor.name}. ")
-    val structureDescriptionOpt = structureOpt.map(structure => s"You see ${structure.name}. ")
-    val itemDescriptionsOpt =
-      if(itemBag.items.isEmpty) None
-      else {
-        val itemShortDescriptions = itemBag.items.toList.map { case (item, n) => s"$n ${item.name}" }
-        Some(itemShortDescriptions.mkString("On the floor, you see ", ", ", "."))
-      }
-
-    (beingDescriptionOpt, structureDescriptionOpt, itemDescriptionsOpt) match {
-      case (None, None, None) => "You see the floor."
-      case _ =>
-        List(beingDescriptionOpt, structureDescriptionOpt, itemDescriptionsOpt).flatten.mkString(" ")
-    }
-  }
 }

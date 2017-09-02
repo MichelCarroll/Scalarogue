@@ -36,7 +36,7 @@ case class GameDisplayAdapter(
         .map(_.itemBag.items.map {
           case (item, amount) => js.Dictionary(
             "slug" -> item.slug,
-            "name" -> item.capitalizedName,
+            "name" -> item.pluralNoun,
             "amount" -> amount
           )
         }.toSeq)

@@ -1,6 +1,7 @@
 package game
 
 import dungeon.Cell
+import linguistics.Sentence
 
 
 trait Named { self =>
@@ -32,61 +33,67 @@ trait Describable extends Named {
   }
 }
 
-trait Notification {
+trait Notification extends Sentence {
   val message: String
 }
 
 case object LookAtDarkness extends Notification {
-  val message = s"You look into the dismal abyss."
+  val message = s"you look into the dismal abyss"
 }
 
 case class LookAtCell(cell: Cell) extends Notification {
-  val message = s"${cell.description}"
+
+  val message = {
+    val beingDescriptionOpt = cell.beingOpt.map(being => s"you see the ${being.descriptor.name}")
+    val structureDescriptionOpt = cell.structureOpt.map(structure => s"you see ${structure.name}")
+    val itemDescriptionsOpt =
+      if(cell.itemBag.items.isEmpty) None
+      else {
+        val itemShortDescriptions = cell.itemBag.items.toList.map { case (item, n) => numbered(item, n) }
+        Some(itemShortDescriptions.mkString("on the floor, you see ", ", ", ""))
+      }
+
+    (beingDescriptionOpt, structureDescriptionOpt, itemDescriptionsOpt) match {
+      case (None, None, None) => "you see the floor"
+      case _ =>
+        List(beingDescriptionOpt, structureDescriptionOpt, itemDescriptionsOpt).flatten.mkString(", and ")
+    }
+  }
+
 }
 
 case class ItemStash(by: Describable, item: Item) extends Notification {
-  val verb = if(by.isProtagonist) "stash" else "stashes"
-  val message = s"${by.subject} $verb a ${item.name}"
+  val message = s"${by.subject} stashed ${numbered(item, 1)}"
 }
 
 case class ItemHeld(by: Describable, item: Item) extends Notification {
-  val verb = if(by.isProtagonist) "hold" else "holds"
-  val message = s"${by.subject} $verb a ${item.name}"
+  val message = s"${by.subject} held ${numbered(item, 1)}"
 }
 
 case class PotionDrank(by: Describable, potion: Potion) extends Notification {
-  val verb = if(by.isProtagonist) "drink" else "drank"
-  val message = s"${by.subject} $verb a ${potion.name}"
+  val message = s"${by.subject} drank ${numbered(potion, 1)}"
 }
 
 case class BeingAffected(by: Describable, beingEffect: BeingEffect) extends Notification {
-  val verb = if(by.isProtagonist) "have been" else "has been"
-  val message = s"${by.subject} $verb ${beingEffect.description}"
+  val message = s"${by.subject} were ${beingEffect.description}"
 }
 
 case class TargetTaken(by: Describable, amount: Int, item: Item) extends Notification {
-  val verb = if(by.isProtagonist) "pick up and stash" else "picks up and stashes"
-  val message = s"${by.subject} $verb $amount ${item.name}"
+  val message = s"${by.subject} picked up and stashed ${numbered(item, amount)}"
 }
 
 case class TargetOpened(by: Describable, target: Describable) extends Notification {
-  val verb = if(by.isProtagonist) "open" else "opens"
-  val message = s"${by.subject} $verb ${target.subject}"
+  val message = s"${by.subject} opened ${target.subject}"
 }
 
 case class TargetHit(by: Describable, target: Describable, damage: Int) extends Notification {
-  val verb = if(by.isProtagonist) "hit" else "hits"
-  val prefixMessage = s"${by.subject} $verb ${target.subject}"
-
-  val message = s"$prefixMessage, ${target.subjectUsingPronouns} received $damage damage"
+  val message = s"${by.subject} hit ${target.subject}, ${target.subjectUsingPronouns} received $damage damage"
 }
 
 case class TargetDies(target: Describable) extends Notification {
-  val verb = if(target.isProtagonist) "die" else "dies"
-  val message = s"${target.subject} $verb!"
+  val message = s"${target.subject} died!"
 }
 
 case class TargetDropsItem(by: Describable, amount: Int, item: Item) extends Notification {
-  val verb = if(by.isProtagonist) "drop" else "drops"
-  val message = s"${by.subject} $verb $amount ${item.name}!"
+  val message = s"${by.subject} dropped ${numbered(item, amount)}!"
 }

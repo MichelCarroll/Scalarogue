@@ -1,5 +1,7 @@
 package game
 
+import linguistics.Noun
+
 case class ItemSlug(value: String) extends AnyVal
 
 sealed trait BeingEffect {
@@ -20,10 +22,8 @@ sealed trait Weapon extends Item {
 /**
   * Created by MichelCarroll on 3/28/2017.
   */
-sealed trait Item {
+sealed trait Item extends Noun {
   val slug: ItemSlug
-  val name: String
-  val capitalizedName: String
 }
 
 /**
@@ -31,22 +31,25 @@ sealed trait Item {
   */
 case object Gold extends Item {
   val slug = ItemSlug("gold")
-  val name = "gold"
-  val capitalizedName = "Gold"
+  val singularNoun = "Gold Coin"
+  val pluralNoun = "Gold Coins"
+  val indefiniteArticle = "a"
 }
 
 case object HealthPotion extends Potion {
   val slug = ItemSlug("health-potion")
-  val name = "health potion"
-  val capitalizedName = "Health Potion"
   val effect = FullyHeal
+  val singularNoun = "Health Potion"
+  val pluralNoun = "Health Potions"
+  val indefiniteArticle = "a"
 }
 
 case object Sword extends Weapon {
   val slug = ItemSlug("sword")
-  val name = "sword"
-  val capitalizedName = "Sword"
   val damageRange = ClosedInterval(5, 10)
+  val singularNoun = "Sword"
+  val pluralNoun = "Swords"
+  val indefiniteArticle = "a"
 }
 
 case class ItemBag(items: Map[Item, Int]) extends AnyVal {
